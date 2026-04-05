@@ -1,0 +1,8 @@
+{
+  "name": "@mali-ai/ai-engine",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String?
+  password       String?
+  googleId       String?  @unique
+  phone          String?
+  whatsappNumber String?
+  plan           Plan     @default(FREE)
+  stores         Store[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Store {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subdomain String    @unique
+  name      String
+  tagline   String
+  config    Json
+  isLive    Boolean   @default(false)
+  plan      Plan      @default(FREE)
+  products  Product[]
+  orders    Order[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  price        Decimal  @db.Decimal(10, 2)
+  comparePrice Decimal? @db.Decimal(10, 2)
+  images       String[]
+  stock        Int      @default(0)
+  sku          String?
+  source       Source   @default(MANUAL)
+  aliexpressId String?
+  isActive     Boolean  @default(true)
+  orderItems   OrderItem[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Order {
+  id                String      @id @default(cuid())
+  storeId           String
+  store             Store       @relation(fields: [storeId], references: [id])
+  customerName      String
+  customerEmail     String
+  customerPhone     String?
+  customerAddress   Json
+  items             OrderItem[]
+  total             Decimal     @db.Decimal(10, 2)
+  status            OrderStatus @default(PENDING)
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  whatsappSent      Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  title     String
+  price     Decimal @db.Decimal(10, 2)
+  quantity  Int
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+}
+
+enum Source {
+  MANUAL
+  ALIEXPRESS
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}

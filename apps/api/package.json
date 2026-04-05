@@ -1,0 +1,29 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1024.0",
+    "@fastify/cors": "^8",
+    "@fastify/jwt": "^8",
+    "@fastify/multipart": "^8",
+    "@mali-ai/ai-engine": "*",
+    "@mali-ai/db": "*",
+    "bcryptjs": "^2",
+    "dotenv": "^16",
+    "fastify": "^4",
+    "nanoid": "^3",
+    "razorpay": "^2",
+    "twilio": "^5"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2",
+    "@types/node": "^20",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}
