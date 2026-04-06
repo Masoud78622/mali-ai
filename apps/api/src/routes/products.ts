@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { prisma } from "@mali-ai/db";
-import { generateStoreConfig } from "@mali-ai/ai-engine";
+import { generateStoreConfig, generateProductDescription } from "@mali-ai/ai-engine";
 
 export default async function productRoutes(app: FastifyInstance) {
   const auth = { preHandler: [app.authenticate] };

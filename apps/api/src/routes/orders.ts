@@ -3,7 +3,7 @@ import { prisma } from "@mali-ai/db";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 
-import Razorpay from "razorpay";
+
 
 function getRazorpay() {
   return new Razorpay({
