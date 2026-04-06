@@ -108,19 +108,19 @@ export default function DashboardPage() {
                   >
                     Manage
                   </Link>
-                  
+                  <a
                     href={`http://${store.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`}
                     target="_blank"
                     className="flex-1 text-center bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 py-2 rounded-lg text-sm transition"
                   >
                     View Store
                   </a>
-                </div>
               </div>
-            ))}
-          </div>
-        )}
+              </div>
+        ))}
       </div>
+        )}
     </div>
+    </div >
   );
 }

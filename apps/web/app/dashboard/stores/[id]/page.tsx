@@ -62,11 +62,11 @@ export default function StorePage() {
           <Link href="/dashboard" className="text-slate-400 hover:text-white transition">← Dashboard</Link>
           <h1 className="text-white font-bold text-xl">{store?.name}</h1>
         </div>
-        
-          href={`http://${store?.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`}
-          target="_blank"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm transition"
-        >
+          <a
+            href={`http://${store?.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`}
+            target="_blank"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm transition"
+          >
           View Store
         </a>
       </nav>
