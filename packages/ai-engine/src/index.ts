@@ -63,39 +63,48 @@ export async function callAI(prompt: string, maxTokens = 1000): Promise<string> 
       "gemini-flash-latest"
     ];
 
-    console.log(`🤖 Starting Gemini Model Discovery...`);
+    console.log(`🤖 Starting Gemini Multi-Key Discovery...`);
+    const keys = p.apiKey.split(",").map(k => k.trim()).filter(Boolean);
     let lastError: any = null;
 
     for (const modelName of candidates) {
-      let retryCount = 0;
-      const maxRetries = 2; // 3 total attempts per model
+      for (const currentKey of keys) {
+        let retryCount = 0;
+        const maxRetries = 1; // 2 total attempts per key
 
-      while (retryCount <= maxRetries) {
-        try {
-          process.stdout.write(`   ↳ Attempting [${modelName}] (Try ${retryCount + 1})... `);
-          const genAI = new GoogleGenerativeAI(p.apiKey);
-          const model = genAI.getGenerativeModel({ model: modelName });
-          const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
-          });
-          const response = await result.response;
-          const text = response.text();
-          console.log(`✅ SUCCESS!`);
-          return text;
-        } catch (err: any) {
-          lastError = err;
-          const isRetryable = err.message.includes("503") || err.message.includes("429");
-          
-          if (isRetryable && retryCount < maxRetries) {
-            console.log(`⚠️ BUSY/QUOTA. Retrying in 3s...`);
-            retryCount++;
-            await new Promise(r => setTimeout(r, 3000));
-            continue;
+        while (retryCount <= maxRetries) {
+          try {
+            process.stdout.write(`   ↳ Trying [${modelName}] with Key: ${currentKey.slice(0, 6)}... `);
+            const genAI = new GoogleGenerativeAI(currentKey);
+            const model = genAI.getGenerativeModel({ model: modelName });
+            const result = await model.generateContent({
+              contents: [{ role: "user", parts: [{ text: prompt }] }],
+              generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
+            });
+            const response = await result.response;
+            const text = response.text();
+            console.log(`✅ SUCCESS!`);
+            return text;
+          } catch (err: any) {
+            lastError = err;
+            const isQuotaError = err.message.includes("429");
+            const isRetryable = isQuotaError || err.message.includes("503");
+
+            if (isQuotaError && keys.length > 1 && keys.indexOf(currentKey) < keys.length - 1) {
+              console.log(`⚠️ QUOTA EXCEEDED. Switching to Next Key...`);
+              break; // Switch to the next key for this model
+            }
+
+            if (isRetryable && retryCount < maxRetries) {
+              console.log(`⚠️ BUSY/QUOTA. Retrying in 2s...`);
+              retryCount++;
+              await new Promise(r => setTimeout(r, 2000));
+              continue;
+            }
+
+            console.log(`❌ FAILED: ${err.message.slice(0, 80)}...`);
+            break; // Move to next key or model
           }
-
-          console.log(`❌ FAILED: ${err.message.slice(0, 100)}...`);
-          break; // Move to next model
         }
       }
     }
