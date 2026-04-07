@@ -1,11 +1,11 @@
 const PROVIDERS = [
-  { name: "custom",     envKey: "AI_API_KEY",        baseURLEnv: "AI_BASE_URL",                defaultModel: () => process.env.AI_MODEL || "gpt-3.5-turbo" },
+  { name: "gemini",     envKey: "AI_API_KEY",         baseURL: "https://generativelanguage.googleapis.com/v1beta/openai", defaultModel: () => "gemini-1.5-flash" },
   { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",  defaultModel: () => process.env.OPENROUTER_MODEL || "qwen/qwen-2.5-72b-instruct" },
   { name: "openai",     envKey: "OPENAI_API_KEY",     baseURL: "https://api.openai.com/v1",     defaultModel: () => "gpt-4o-mini" },
   { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1",defaultModel: () => "llama-3.3-70b-versatile" },
   { name: "together",   envKey: "TOGETHER_API_KEY",   baseURL: "https://api.together.xyz/v1",   defaultModel: () => "meta-llama/Llama-3-70b-chat-hf" },
   { name: "mistral",    envKey: "MISTRAL_API_KEY",    baseURL: "https://api.mistral.ai/v1",     defaultModel: () => "mistral-small-latest" },
-  { name: "gemini",     envKey: "AI_API_KEY",         baseURL: "https://generativelanguage.googleapis.com/v1beta/openai", defaultModel: () => "gemini-2.0-flash" },
+  { name: "custom",     envKey: "AI_API_KEY",        baseURLEnv: "AI_BASE_URL",                defaultModel: () => process.env.AI_MODEL || "gpt-3.5-turbo" },
 ];
 
 function isValid(key?: string) {

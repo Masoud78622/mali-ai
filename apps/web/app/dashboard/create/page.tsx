@@ -28,7 +28,8 @@ export default function CreateStorePage() {
       );
       router.push(`/dashboard/stores/${data.id}`);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to create store");
+      const apiError = err.response?.data?.message || err.response?.data?.error || "Failed to create store";
+      setError(apiError);
       setStep("form");
     } finally {
       setLoading(false);
