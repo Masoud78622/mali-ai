@@ -156,6 +156,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stores.map((store: any, i: number) => {
                   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
                   const isInvalidDomain = !rootDomain || rootDomain === "undefined";
                   const fallbackDomain = typeof window !== "undefined" ? window.location.host : "localhost:3000";
