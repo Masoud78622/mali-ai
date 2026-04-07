@@ -27,16 +27,31 @@ function getProvider() {
   );
 }
 
+function extractJSON(text: string) {
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return JSON.parse(text);
+    return JSON.parse(jsonMatch[0]);
+  } catch (err) {
+    console.error("❌ Failed to parse AI JSON. Raw text:", text);
+    throw new Error("AI returned invalid JSON format. Please try again.");
+  }
+}
+
 export async function callAI(prompt: string, maxTokens = 1000): Promise<string> {
   const p = getProvider();
+  console.log(`🤖 Calling AI provider: ${p.name} (model: ${p.model})`);
+  
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${p.apiKey}`,
   };
+  
   if (p.name === "openrouter") {
     headers["HTTP-Referer"] = "https://mali-ai.com";
     headers["X-Title"] = "Mali AI";
   }
+
   const res = await fetch(`${p.baseURL}/chat/completions`, {
     method: "POST",
     headers,
@@ -47,8 +62,13 @@ export async function callAI(prompt: string, maxTokens = 1000): Promise<string> 
       temperature: 0.7,
     }),
   });
+
   const data = await res.json() as any;
-  if (!res.ok) throw new Error(`${p.name} error: ${data.error?.message || JSON.stringify(data)}`);
+  if (!res.ok) {
+    console.error(`❌ AI Provider Error (${p.name}):`, JSON.stringify(data));
+    throw new Error(`${p.name} error: ${data.error?.message || JSON.stringify(data)}`);
+  }
+  
   return data.choices?.[0]?.message?.content || "";
 }
 
@@ -57,8 +77,9 @@ export async function generateStoreConfig(description: string, niche?: string, a
 INPUT:"${description}"${niche ? `\nNiche:${niche}` : ""}${audience ? `\nAudience:${audience}` : ""}
 Reply ONLY valid JSON:
 {"name":"store name","tagline":"tagline","niche":"niche","targetAudience":"audience","brandVoice":"casual|professional|luxury","theme":{"primaryColor":"#hex","secondaryColor":"#hex","accentColor":"#hex","backgroundColor":"#hex","textColor":"#hex","fontHeading":"Google Font","fontBody":"Google Font","style":"minimal|bold|elegant|playful|tech","borderRadius":"8px"},"seo":{"metaTitle":"<60 chars","metaDescription":"<160 chars","keywords":["k1","k2","k3"]},"pages":{"hero":{"headline":"headline","subheadline":"subheadline","ctaText":"Shop Now","features":[{"icon":"🚚","title":"Free Shipping","description":"On orders over ₹500"},{"icon":"🔒","title":"Secure Payment","description":"100% secure checkout"},{"icon":"↩️","title":"Easy Returns","description":"30-day returns"}]},"about":"about page text","shipping":"shipping policy","returns":"returns policy"},"productCategories":["cat1","cat2"],"pricingStrategy":"budget|mid|premium","estimatedMargin":35}`;
-  const text = await callAI(prompt, 1500);
-  return JSON.parse(text.replace(/```json|```/g, "").trim());
+  
+  const text = await callAI(prompt, 2000);
+  return extractJSON(text);
 }
 
 export async function generateProductDescription(title: string, niche: string, voice: string) {
@@ -72,9 +93,16 @@ export async function suggestProducts(niche: string, audience: string, pricing: 
   const prompt = `Suggest ${count} winning dropshipping products.
 Niche:${niche}|Audience:${audience}|Pricing:${pricing}
 Reply ONLY JSON array:[{"title":"","description":"","price":29.99,"costEstimate":8.00,"margin":72,"category":"","tags":["t1"],"searchKeywords":["k1"]}]`;
-  const text = await callAI(prompt, 1800);
-  try { return JSON.parse(text.replace(/```json|```/g, "").trim()); }
-  catch { return []; }
+  
+  const text = await callAI(prompt, 2000);
+  try {
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return JSON.parse(text);
+    return JSON.parse(jsonMatch[0]);
+  } catch (err) {
+    console.error("❌ Failed to parse AI product suggestions:", text);
+    return [];
+  }
 }
 
 export default { callAI, generateStoreConfig, generateProductDescription, suggestProducts };

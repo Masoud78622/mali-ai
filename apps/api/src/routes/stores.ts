@@ -55,20 +55,29 @@ export default async function storeRoutes(app: FastifyInstance) {
     }
 
     // Generate AI config
-    const config = await generateStoreConfig(description, niche, targetAudience);
-    const subdomain = `${nanoid(10).toLowerCase()}`;
+    try {
+      console.log(`🚀 Starting AI generation for store: ${description.slice(0, 50)}...`);
+      const config = await generateStoreConfig(description, niche, targetAudience);
+      const subdomain = `${nanoid(10).toLowerCase()}`;
 
-    const store = await prisma.store.create({
-      data: {
-        userId,
-        subdomain,
-        name: config.name,
-        tagline: config.tagline,
-        config,
-        isLive: true,
-      },
-    });
-    return store;
+      const store = await prisma.store.create({
+        data: {
+          userId,
+          subdomain,
+          name: config.name,
+          tagline: config.tagline,
+          config,
+          isLive: true,
+        },
+      });
+      return store;
+    } catch (err: any) {
+      console.error("❌ Store creation failed:", err.message);
+      return reply.code(422).send({ 
+        error: "AI Generation Failed", 
+        message: err.message || "The AI was unable to generate your store configuration. Please try describing your business differently."
+      });
+    }
   });
 
   // Update store config
