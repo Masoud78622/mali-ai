@@ -54,7 +54,7 @@ export async function callAI(prompt: string, maxTokens = 1000): Promise<string> 
     headers["X-Title"] = "Mali AI";
   }
 
-  const res = await fetch(`${p.baseURL}/chat/completions`, {
+  const res = await fetch(fullURL, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -65,7 +65,19 @@ export async function callAI(prompt: string, maxTokens = 1000): Promise<string> 
     }),
   });
 
-  const data = await res.json() as any;
+  const responseText = await res.text();
+  if (!responseText) {
+    throw new Error(`${p.name} error: Empty response from server. (Status: ${res.status})`);
+  }
+
+  let data: any;
+  try {
+    data = JSON.parse(responseText);
+  } catch (err) {
+    console.error(`❌ AI Provider returned non-JSON (${p.name}):`, responseText);
+    throw new Error(`${p.name} returned malformed response. Check logs for details.`);
+  }
+
   if (!res.ok) {
     console.error(`❌ AI Provider Error (${p.name}):`, JSON.stringify(data));
     throw new Error(`${p.name} error: ${data.error?.message || JSON.stringify(data)}`);
