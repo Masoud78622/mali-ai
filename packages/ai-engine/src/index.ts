@@ -57,33 +57,46 @@ export async function callAI(prompt: string, maxTokens = 1000): Promise<string> 
   if (p.name === "gemini") {
     const candidates = [
       "gemini-2.5-flash",
+      "gemini-1.5-flash",
       "gemini-2.0-flash",
       "gemini-flash-lite",
       "gemini-flash-latest"
     ];
 
     console.log(`🤖 Starting Gemini Model Discovery...`);
-    
-    let lastError = "";
+    let lastError: any = null;
+
     for (const modelName of candidates) {
-      try {
-        console.log(`🔍 Testing model: ${modelName}...`);
-        const genAI = new GoogleGenerativeAI(p.apiKey);
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
-        });
-        const text = result.response.text();
-        if (text) {
-          console.log(`✅ Success! Using model: ${modelName}`);
+      let retryCount = 0;
+      const maxRetries = 2; // 3 total attempts per model
+
+      while (retryCount <= maxRetries) {
+        try {
+          process.stdout.write(`   ↳ Attempting [${modelName}] (Try ${retryCount + 1})... `);
+          const genAI = new GoogleGenerativeAI(p.apiKey);
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const result = await model.generateContent({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
+          });
+          const response = await result.response;
+          const text = response.text();
+          console.log(`✅ SUCCESS!`);
           return text;
+        } catch (err: any) {
+          lastError = err;
+          const isRetryable = err.message.includes("503") || err.message.includes("429");
+          
+          if (isRetryable && retryCount < maxRetries) {
+            console.log(`⚠️ BUSY/QUOTA. Retrying in 3s...`);
+            retryCount++;
+            await new Promise(r => setTimeout(r, 3000));
+            continue;
+          }
+
+          console.log(`❌ FAILED: ${err.message.slice(0, 100)}...`);
+          break; // Move to next model
         }
-      } catch (err: any) {
-        lastError = err.message;
-        console.warn(`⚠️ Model ${modelName} failed: ${err.message.slice(0, 100)}...`);
-        // Continue to next model if it's a 404 or support error
-        continue;
       }
     }
     throw new Error(`Gemini Discovery Failed. All models (Flash, Pro) were rejected by your API key. Last error: ${lastError}`);
