@@ -3,9 +3,24 @@ import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
 import multipart from "@fastify/multipart";
 import dotenv from "dotenv";
+import { prisma } from "@mali-ai/db";
 dotenv.config();
 
-const app = Fastify({ logger: true });
+// Global Error Handlers
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err.message);
+  console.error(err.stack);
+  // Give the logger a chance to flush before exiting
+  setTimeout(() => process.exit(1), 100);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+const app = Fastify({ 
+  logger: true
+});
 
 // Plugins
 app.register(cors, { origin: true });
@@ -40,13 +55,42 @@ app.register(productRoutes, { prefix: "/api/products" });
 app.register(orderRoutes, { prefix: "/api/orders" });
 app.register(webhookRoutes, { prefix: "/api/webhooks" });
 
+// Graceful Shutdown
+const signals = ["SIGINT", "SIGTERM"];
+signals.forEach((signal) => {
+  process.on(signal, async () => {
+    console.log(`\n🛑 Received ${signal}, shutting down gracefully...`);
+    await app.close();
+    await prisma.$disconnect();
+    console.log("👋 Shutdown complete");
+    process.exit(0);
+  });
+});
+
+// Environment Validation
+const validateEnv = () => {
+  const critical = ["DATABASE_URL", "AI_API_KEY", "JWT_SECRET"];
+  critical.forEach((key) => {
+    if (!process.env[key] || process.env[key] === "xxx") {
+      console.warn(`⚠️  Warning: environment variable ${key} is missing or set to placeholder 'xxx'`);
+    }
+  });
+};
+
 // Start
 const start = async () => {
   try {
+    validateEnv();
+    
+    // DB Check
+    console.log("🔌 Connecting to database...");
+    await prisma.$connect();
+    console.log("✅ Database connected successfully");
+
     await app.listen({ port: Number(process.env.PORT) || 3001, host: "0.0.0.0" });
     console.log("🚀 API running on port", process.env.PORT || 3001);
   } catch (err) {
-    app.log.error(err);
+    console.error("❌ Failed to start server:", err);
     process.exit(1);
   }
 };

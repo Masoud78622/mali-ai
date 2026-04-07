@@ -40,8 +40,19 @@ export default async function productRoutes(app: FastifyInstance) {
     }
 
     // AI-enhance description if not provided
-    const finalDescription = description ||
-      await generateProductDescription(title, store.name, (store.config as any).brandVoice || "professional");
+    let finalDescription = description;
+    if (!finalDescription) {
+      try {
+        finalDescription = await generateProductDescription(
+          title, 
+          store.name, 
+          (store.config as any).brandVoice || "professional"
+        );
+      } catch (err) {
+        console.error("❌ AI Description generation failed:", err);
+        finalDescription = "Description coming soon.";
+      }
+    }
 
     return prisma.product.create({
       data: { storeId, title, description: finalDescription, price, comparePrice, images: images || [], stock: stock || 0, sku, source: "MANUAL" },
@@ -112,26 +123,40 @@ export default async function productRoutes(app: FastifyInstance) {
     const aliexpressId = match[1];
 
     // Fetch from AliExpress API
-    const res = await fetch(
-      `https://api.aliexpress.com/v2/product?appKey=${process.env.ALIEXPRESS_APP_KEY}&productId=${aliexpressId}`
-    );
-    const data = await res.json() as any;
-    const item = data?.result;
+    let item;
+    try {
+      const res = await fetch(
+        `https://api.aliexpress.com/v2/product?appKey=${process.env.ALIEXPRESS_APP_KEY}&productId=${aliexpressId}`
+      );
+      if (!res.ok) throw new Error(`AliExpress API returned ${res.status}`);
+      const data = await res.json() as any;
+      item = data?.result;
+    } catch (err) {
+      console.error("❌ AliExpress fetch failed:", err);
+      return reply.code(502).send({ error: "Failed to fetch product from AliExpress" });
+    }
+
     if (!item) return reply.code(404).send({ error: "Product not found on AliExpress" });
 
-    const description = await generateProductDescription(
-      item.title,
-      store.name,
-      (store.config as any).brandVoice || "professional"
-    );
+    let description = "";
+    try {
+      description = await generateProductDescription(
+        item.title,
+        store.name,
+        (store.config as any).brandVoice || "professional"
+      );
+    } catch (err) {
+      console.error("❌ AI Description generation failed for AliExpress product:", err);
+      description = item.description || "Description coming soon.";
+    }
 
     return prisma.product.create({
       data: {
         storeId,
         title: item.title,
         description,
-        price: item.salePrice * 2.5, // 2.5x markup
-        costEstimate: item.salePrice,
+        price: (item.salePrice || 0) * 2.5, // 2.5x markup
+        costEstimate: item.salePrice || 0,
         images: item.imageUrls || [],
         source: "ALIEXPRESS",
         aliexpressId,

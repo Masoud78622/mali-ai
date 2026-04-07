@@ -26,14 +26,25 @@ export default async function webhookRoutes(app: FastifyInstance) {
     const signature = req.headers["x-razorpay-signature"] as string;
     const body = JSON.stringify(req.body);
 
-    // Verify signature
-    const expected = crypto
-      .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET!)
-      .update(body)
-      .digest("hex");
+    if (!process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_WEBHOOK_SECRET === "xxx") {
+      console.error("❌ RAZORPAY_WEBHOOK_SECRET is missing or invalid");
+      return reply.code(500).send({ error: "Webhook configuration error" });
+    }
 
-    if (signature !== expected) {
-      return reply.code(400).send({ error: "Invalid signature" });
+    // Verify signature
+    try {
+      const expected = crypto
+        .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
+        .update(body)
+        .digest("hex");
+
+      if (signature !== expected) {
+        console.warn("⚠️ Invalid Razorpay signature received");
+        return reply.code(400).send({ error: "Invalid signature" });
+      }
+    } catch (err) {
+      console.error("❌ Error verifying Razorpay signature:", err);
+      return reply.code(500).send({ error: "Signature verification failed" });
     }
 
     const event = req.body as any;
