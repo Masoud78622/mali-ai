@@ -56,11 +56,10 @@ export async function callAI(prompt: string, maxTokens = 1000): Promise<string> 
   // NATIVE GEMINI SDK WITH SELF-HEALING FALLBACK
   if (p.name === "gemini") {
     const candidates = [
+      "gemini-2.5-flash",
       "gemini-2.0-flash",
       "gemini-flash-lite",
-      "gemini-flash-latest",
-      "gemini-2.5-flash",
-      "gemini-1.5-flash-latest"
+      "gemini-flash-latest"
     ];
 
     console.log(`🤖 Starting Gemini Model Discovery...`);
