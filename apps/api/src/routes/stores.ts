@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { prisma } from "@mali-ai/db";
-import { generateStoreConfig } from "@mali-ai/ai-engine";
+import { generateStoreConfig, suggestProducts } from "@mali-ai/ai-engine";
 import { nanoid } from "nanoid";
 
 export default async function storeRoutes(app: FastifyInstance) {
@@ -46,20 +46,22 @@ export default async function storeRoutes(app: FastifyInstance) {
     const { id: userId } = req.user as any;
     const { description, niche, targetAudience } = req.body as any;
 
-    // Check plan limits
-    const storeCount = await prisma.store.count({ where: { userId } });
     const user = await prisma.user.findUnique({ where: { id: userId } });
+    const storeCount = await prisma.store.count({ where: { userId } });
     const limits = { FREE: 1, STARTER: 3, PRO: 999 };
     if (storeCount >= limits[user!.plan]) {
       return reply.code(403).send({ error: `Upgrade your plan to create more stores` });
     }
 
-    // Generate AI config
     try {
-      console.log(`🚀 Starting AI generation for store: ${description.slice(0, 50)}...`);
+      console.log(`🚀 AI Store Generation Started: "${description.slice(0, 40)}..."`);
+      
+      // PHASE 1: Generate Store Branding & Design
+      console.log("🎨 Generating design & branding...");
       const config = await generateStoreConfig(description, niche, targetAudience);
-      const subdomain = `${nanoid(10).toLowerCase()}`;
+      const subdomain = nanoid(10).toLowerCase();
 
+      // PHASE 2: Create Store
       const store = await prisma.store.create({
         data: {
           userId,
@@ -70,12 +72,39 @@ export default async function storeRoutes(app: FastifyInstance) {
           isLive: true,
         },
       });
+
+      // PHASE 3: Generate Products
+      console.log(`📦 Generating products for niche: ${config.niche}...`);
+      const suggestedProducts = await suggestProducts(
+        config.niche,
+        config.targetAudience,
+        config.pricingStrategy || "mid"
+      );
+
+      if (suggestedProducts && suggestedProducts.length > 0) {
+        console.log(`✨ Saving ${suggestedProducts.length} AI-generated products...`);
+        await prisma.product.createMany({
+          data: suggestedProducts.map((p: any) => ({
+            storeId: store.id,
+            title: p.title,
+            description: p.description,
+            price: p.price,
+            cost: p.costEstimate || 0,
+            category: p.category || "General",
+            images: [], // Images would be added via Ali Sourcing later
+            isActive: true,
+            inventory: 100,
+          })),
+        });
+      }
+
+      console.log(`✅ Store "${store.name}" successfully created!`);
       return store;
     } catch (err: any) {
-      console.error("❌ Store creation failed:", err.message);
+      console.error("❌ AI Generation Error:", err.message);
       return reply.code(422).send({ 
         error: "AI Generation Failed", 
-        message: err.message || "The AI was unable to generate your store configuration. Please try describing your business differently."
+        message: err.message || "Failed to generate your store. Please try again."
       });
     }
   });

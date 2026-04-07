@@ -156,58 +156,64 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {stores.map((store, i) => (
-              <div key={store.id}
-                className="group relative rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 animate-fade-up"
-                style={{
-                  background: "rgba(255,255,255,0.025)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  animationDelay: `${i * 0.05}s`,
-                  boxShadow: "0 4px 24px rgba(0,0,0,0.3)"
-                }}>
-                {/* Hover glow */}
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                  style={{ boxShadow: "inset 0 0 0 1px rgba(99,102,241,0.2)" }} />
+                  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+                  const isInvalidDomain = !rootDomain || rootDomain === "undefined";
+                  const fallbackDomain = typeof window !== "undefined" ? window.location.host : "localhost:3000";
+                  const finalDomain = isInvalidDomain ? fallbackDomain : rootDomain;
 
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-white font-semibold text-lg truncate">{store.name}</h3>
-                    <p className="text-gray-400 text-sm mt-0.5 truncate">{store.tagline}</p>
-                  </div>
-                  <span className={`ml-3 flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${
-                    store.isLive
-                      ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
-                      : "text-gray-500 bg-white/5 border border-white/10"
-                  }`}>
-                    {store.isLive ? "● Live" : "○ Draft"}
-                  </span>
-                </div>
+                  return (
+                    <div key={store.id}
+                      className="group relative rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 animate-fade-up"
+                      style={{
+                        background: "rgba(255,255,255,0.025)",
+                        border: "1px solid rgba(255,255,255,0.07)",
+                        animationDelay: `${i * 0.05}s`,
+                        boxShadow: "0 4px 24px rgba(0,0,0,0.3)"
+                      }}>
+                      {/* Hover glow */}
+                      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                        style={{ boxShadow: "inset 0 0 0 1px rgba(99,102,241,0.2)" }} />
 
-                <div className="flex gap-4 text-xs text-gray-500 mb-5">
-                  <span className="flex items-center gap-1">
-                    <span>🛍️</span> {store._count?.products || 0} products
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span>📦</span> {store._count?.orders || 0} orders
-                  </span>
-                </div>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-semibold text-lg truncate">{store.name}</h3>
+                          <p className="text-gray-400 text-sm mt-0.5 truncate">{store.tagline}</p>
+                        </div>
+                        <span className={`ml-3 flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${
+                          store.isLive
+                            ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
+                            : "text-gray-500 bg-white/5 border border-white/10"
+                        }`}>
+                          {store.isLive ? "● Live" : "○ Draft"}
+                        </span>
+                      </div>
 
-                <div className="flex gap-2">
-                  <Link href={`/dashboard/stores/${store.id}`}
-                    className="flex-1 text-center py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:bg-white/10"
-                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                    Manage
-                  </Link>
-                  <a href={`http://${store.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3000"}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 text-center py-2.5 rounded-xl text-sm font-medium text-indigo-400 transition-all hover:text-indigo-300"
-                    style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)" }}>
-                    View Store ↗
-                  </a>
-                </div>
-              </div>
-            ))}
+                      <div className="flex gap-4 text-xs text-gray-500 mb-5">
+                        <span className="flex items-center gap-1">
+                          <span>🛍️</span> {store._count?.products || 0} products
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span>📦</span> {store._count?.orders || 0} orders
+                        </span>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Link href={`/dashboard/stores/${store.id}`}
+                          className="flex-1 text-center py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:bg-white/10"
+                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                          Manage
+                        </Link>
+                        <a href={`http://${store.subdomain}.${finalDomain}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 text-center py-2.5 rounded-xl text-sm font-medium text-indigo-400 transition-all hover:text-indigo-300"
+                          style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)" }}>
+                          View Store ↗
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
 
             {/* Create new store card */}
             <Link href="/dashboard/create"
