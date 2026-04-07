@@ -5,8 +5,7 @@
     "buildCommand": "npx turbo run build --filter=api"
   },
   "deploy": {
-    "startCommand": "node apps/api/dist/index.js",
-    "healthCheckPath": "/health",
+    "startCommand": "npm start",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
