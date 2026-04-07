@@ -30,13 +30,23 @@ function getProvider() {
 }
 
 function extractJSON(text: string) {
+  // 1. Remove markdown code blocks (backticks)
+  let cleanText = text.replace(/```(?:json)?\s*([\s\S]*?)\s*```/g, '$1').trim();
+  
   try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return JSON.parse(text);
-    return JSON.parse(jsonMatch[0]);
+    // 2. Try direct parse
+    return JSON.parse(cleanText);
   } catch (err) {
-    console.error("❌ Failed to parse AI JSON. Raw text:", text);
-    throw new Error("AI returned invalid JSON format. Please try again.");
+    // 3. Last-ditch: Try to find anything between { } or [ ]
+    try {
+      const match = cleanText.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+      if (match) return JSON.parse(match[0]);
+    } catch (innerErr) {
+      // Fall through to main error
+    }
+    
+    console.error("❌ Failed to parse AI JSON. Raw text snippet:", text.slice(0, 500));
+    throw new Error("AI response was malformed. Please try again.");
   }
 }
 
@@ -151,11 +161,9 @@ Reply ONLY JSON array:[{"title":"","description":"","price":29.99,"costEstimate"
   
   const text = await callAI(prompt, 2000);
   try {
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return JSON.parse(text);
-    return JSON.parse(jsonMatch[0]);
+    return extractJSON(text);
   } catch (err) {
-    console.error("❌ Failed to parse AI product suggestions:", text);
+    console.error("❌ Failed to parse AI product suggestions. Raw text:", text);
     return [];
   }
 }
