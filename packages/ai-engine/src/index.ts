@@ -43,23 +43,41 @@ function extractJSON(text: string) {
 export async function callAI(prompt: string, maxTokens = 1000): Promise<string> {
   const p = getProvider();
   
-  // NATIVE GEMINI SDK
+  // NATIVE GEMINI SDK WITH SELF-HEALING FALLBACK
   if (p.name === "gemini") {
-    console.log(`🤖 Using Native Gemini SDK (model: ${p.model})`);
-    try {
-      const genAI = new GoogleGenerativeAI(p.apiKey);
-      const model = genAI.getGenerativeModel({ model: p.model });
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
-      });
-      const text = result.response.text();
-      if (!text) throw new Error("Empty response from Gemini SDK");
-      return text;
-    } catch (err: any) {
-      console.error("❌ Gemini SDK Error:", err.message);
-      throw new Error(`Gemini SDK error: ${err.message}`);
+    const candidates = [
+      "gemini-1.5-flash-latest",
+      "gemini-1.5-flash",
+      "gemini-1.5-pro-latest",
+      "gemini-1.5-pro",
+      "gemini-pro"
+    ];
+
+    console.log(`🤖 Starting Gemini Model Discovery...`);
+    
+    let lastError = "";
+    for (const modelName of candidates) {
+      try {
+        console.log(`🔍 Testing model: ${modelName}...`);
+        const genAI = new GoogleGenerativeAI(p.apiKey);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
+        });
+        const text = result.response.text();
+        if (text) {
+          console.log(`✅ Success! Using model: ${modelName}`);
+          return text;
+        }
+      } catch (err: any) {
+        lastError = err.message;
+        console.warn(`⚠️ Model ${modelName} failed: ${err.message.slice(0, 100)}...`);
+        // Continue to next model if it's a 404 or support error
+        continue;
+      }
     }
+    throw new Error(`Gemini Discovery Failed. All models (Flash, Pro) were rejected by your API key. Last error: ${lastError}`);
   }
 
   // STANDARD OPENAI-COMPATIBLE FETCH
