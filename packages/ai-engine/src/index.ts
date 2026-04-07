@@ -1,5 +1,7 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 const PROVIDERS = [
-  { name: "gemini",     envKey: "AI_API_KEY",         baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/", defaultModel: () => "gemini-1.5-flash" },
+  { name: "gemini",     envKey: "AI_API_KEY",         baseURL: "", defaultModel: () => "gemini-1.5-flash" },
   { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",  defaultModel: () => process.env.OPENROUTER_MODEL || "qwen/qwen-2.5-72b-instruct" },
   { name: "openai",     envKey: "OPENAI_API_KEY",     baseURL: "https://api.openai.com/v1",     defaultModel: () => "gpt-4o-mini" },
   { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1",defaultModel: () => "llama-3.3-70b-versatile" },
@@ -40,6 +42,27 @@ function extractJSON(text: string) {
 
 export async function callAI(prompt: string, maxTokens = 1000): Promise<string> {
   const p = getProvider();
+  
+  // NATIVE GEMINI SDK
+  if (p.name === "gemini") {
+    console.log(`🤖 Using Native Gemini SDK (model: ${p.model})`);
+    try {
+      const genAI = new GoogleGenerativeAI(p.apiKey);
+      const model = genAI.getGenerativeModel({ model: p.model });
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
+      });
+      const text = result.response.text();
+      if (!text) throw new Error("Empty response from Gemini SDK");
+      return text;
+    } catch (err: any) {
+      console.error("❌ Gemini SDK Error:", err.message);
+      throw new Error(`Gemini SDK error: ${err.message}`);
+    }
+  }
+
+  // STANDARD OPENAI-COMPATIBLE FETCH
   const fullURL = `${p.baseURL}${p.baseURL.endsWith('/') ? '' : '/'}chat/completions`;
   console.log(`🤖 Calling AI provider: ${p.name} (model: ${p.model})`);
   console.log(`🔗 Request URL: ${fullURL}`);
