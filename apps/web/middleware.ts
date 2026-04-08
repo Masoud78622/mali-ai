@@ -3,7 +3,12 @@ import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
   const host = req.headers.get("host") || "";
-  let rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3000";
+  
+  // Dynamically determine the root domain based on the request host
+  let rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+  if (!rootDomain || rootDomain === "undefined") {
+    rootDomain = host.includes("localhost") ? "localhost:3000" : "mali-ai.shop";
+  }
 
   // Force apex domain to fix Vercel www. environmental bugs
   rootDomain = rootDomain.replace("www.", "");
