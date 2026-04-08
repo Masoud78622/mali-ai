@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const PROVIDERS = [
-  { name: "gemini",     envKey: "AI_API_KEY",         baseURL: "", defaultModel: () => "gemini-1.5-flash" },
+  { name: "gemini",     envKey: "AI_API_KEY",         baseURL: "", defaultModel: () => process.env.AI_MODEL || "gemini-1.5-flash" },
   { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1", defaultModel: () => "llama-3.3-70b-versatile" },
   { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",  defaultModel: () => process.env.OPENROUTER_MODEL || "qwen/qwen-2.5-72b-instruct" },
   { name: "cerebras",   envKey: "CEREBRAS_API_KEY",   baseURL: "https://api.cerebras.ai/v1",    defaultModel: () => "llama3.1-8b" },
@@ -12,7 +12,15 @@ const PROVIDERS = [
   { name: "custom",     envKey: "AI_API_KEY",        baseURLEnv: "AI_BASE_URL",                defaultModel: () => process.env.AI_MODEL || "gpt-3.5-turbo" },
 ];
 
-const FAILOVER_STACK = ["gemini", "groq", "cerebras", "sambanova", "openrouter"];
+// Determine the stack based on config
+function getStack() {
+  const stack = ["gemini", "groq", "cerebras", "sambanova", "openrouter"];
+  // If OpenAI-compatible Gemini endpoint is detected, prioritize custom
+  if (process.env.AI_BASE_URL && process.env.AI_BASE_URL.includes("generativelanguage")) {
+    stack.unshift("custom");
+  }
+  return stack;
+}
 
 function isValid(key?: string) {
   return !!key && key.length > 10 && !key.includes("dummy");
@@ -22,7 +30,13 @@ function getProviderConfig(name: string) {
   const p = PROVIDERS.find(x => x.name === name);
   if (!p) return null;
 
-  const apiKey = process.env[p.envKey]?.trim();
+  let apiKey = process.env[p.envKey]?.trim();
+  
+  // Fallback for Gemini specific key
+  if (p.name === "gemini" && !isValid(apiKey)) {
+    apiKey = process.env.GOOGLE_API_KEY?.trim() || process.env.GEMINI_API_KEY?.trim();
+  }
+
   if (!isValid(apiKey)) return null;
 
   const baseURL = (p as any).baseURLEnv
@@ -55,18 +69,22 @@ function extractJSON(text: string) {
 
 export async function callAI(prompt: string, maxTokens = 2000): Promise<string> {
   let lastError: any = null;
-  for (const providerName of FAILOVER_STACK) {
+  const stack = getStack();
+
+  for (const providerName of stack) {
     const p = getProviderConfig(providerName);
     if (!p) continue;
 
-    console.log(`🤖 AI Call: ${p.name.toUpperCase()}`);
+    console.log(`🤖 AI Call: ${p.name.toUpperCase()} (Model: ${p.model})`);
     for (const currentKey of p.apiKeys) {
       let retryCount = 0;
       while (retryCount <= 1) {
         try {
           if (p.name === "gemini") {
             const genAI = new GoogleGenerativeAI(currentKey);
-            const model = genAI.getGenerativeModel({ model: p.model });
+            // Ensure model name is formatted correctly (SDK adds 'models/' if missing)
+            const modelName = p.model.includes('/') ? p.model : p.model;
+            const model = genAI.getGenerativeModel({ model: modelName });
             const result = await model.generateContent({
               contents: [{ role: "user", parts: [{ text: prompt }] }],
               generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
@@ -86,13 +104,22 @@ export async function callAI(prompt: string, maxTokens = 2000): Promise<string> 
                 temperature: 0.7,
               }),
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {
+              const errorBody = await res.text();
+              throw new Error(`HTTP ${res.status}: ${errorBody.slice(0, 100)}`);
+            }
             const data = await res.json();
             return data.choices?.[0]?.message?.content || "";
           }
         } catch (err: any) {
           lastError = err;
-          if (err.message.includes("429") || err.message.includes("limit")) break;
+          console.warn(`⚠️ Provider ${p.name} failed: ${err.message}`);
+          
+          // Retry logic
+          if (err.message.includes("429") || err.message.includes("limit") || err.message.includes("404")) {
+            // If 404, maybe the model name is wrong, but we should move to next key/provider
+            break; 
+          }
           retryCount++;
           await new Promise(r => setTimeout(r, 1000));
         }
