@@ -8,6 +8,13 @@ export default function PublicStorePage() {
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [cart, setCart] = useState<any[]>([]);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [customer, setCustomer] = useState({ name: "", email: "", phone: "", address: "" });
+  const [submitting, setSubmitting] = useState(false);
+
+  const cartTotal = cart.reduce((sum, item) => sum + (Number(item.price) * (item.quantity || 1)), 0);
 
   useEffect(() => {
     if (subdomain) {
@@ -27,6 +34,34 @@ export default function PublicStorePage() {
     }
   };
 
+  const addToCart = (product: any) => {
+    setCart([...cart, { ...product, quantity: 1 }]);
+    alert("Added to cart!");
+  };
+
+  const handleCheckout = async () => {
+    if (!customer.name || !customer.phone || !customer.address) {
+      return alert("Please fill in all shipping details.");
+    }
+    setSubmitting(true);
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/orders/manual-create`, {
+        storeId: store.id,
+        customerName: customer.name,
+        customerEmail: customer.email || "no-email@mali.ai",
+        customerPhone: customer.phone,
+        customerAddress: { street: customer.address },
+        items: cart.map(i => ({ productId: i.id, title: i.title, price: i.price, quantity: 1 }))
+      });
+      setOrderSuccess(true);
+      setCart([]);
+    } catch (err) {
+      alert("Checkout failed. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -43,15 +78,23 @@ export default function PublicStorePage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-6 sticky top-0 z-10">
+      <header className="bg-white border-b border-slate-200 px-6 py-6 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">{store.name}</h1>
             <p className="text-slate-500 text-sm">{store.tagline}</p>
           </div>
           <div className="flex items-center gap-4">
-            <button className="bg-indigo-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-indigo-700 transition">
-              Cart (0)
+            <button 
+              onClick={() => cart.length > 0 && setShowCheckout(true)}
+              className="bg-indigo-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-indigo-700 transition relative"
+            >
+              Cart ({cart.length})
+              {cart.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                  {cart.length}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -122,6 +165,7 @@ export default function PublicStorePage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xl font-bold text-slate-900">₹{p.price}</span>
                     <button 
+                      onClick={() => addToCart(p)}
                       className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                         !hasImage 
                           ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
@@ -145,6 +189,69 @@ export default function PublicStorePage() {
           <p>&copy; {new Date().getFullYear()} {store.name}. Powered by Mali AI.</p>
         </div>
       </footer>
+
+      {/* UPI Checkout Modal */}
+      {showCheckout && !orderSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row">
+            <div className="p-8 flex-1">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-slate-900">Checkout</h3>
+                <button onClick={() => setShowCheckout(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <input type="text" placeholder="Full Name" value={customer.name} onChange={e => setCustomer({...customer, name: e.target.value})} className="w-full border rounded-xl px-4 py-3 outline-none focus:border-indigo-600" />
+                <input type="text" placeholder="WhatsApp Number" value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} className="w-full border rounded-xl px-4 py-3 outline-none focus:border-indigo-600" />
+                <textarea placeholder="Shipping Address" value={customer.address} onChange={e => setCustomer({...customer, address: e.target.value})} className="w-full border rounded-xl px-4 py-3 outline-none focus:border-indigo-600 h-24" />
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="flex justify-between font-bold text-lg mb-4">
+                  <span>Total Amount</span>
+                  <span>₹{cartTotal}</span>
+                </div>
+                <button 
+                  onClick={handleCheckout} 
+                  disabled={submitting}
+                  className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-indigo-700 transition disabled:opacity-50"
+                >
+                  {submitting ? "Processing..." : "I have Paid ✓"}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-8 flex flex-col items-center justify-center border-l border-slate-200 w-full md:w-72">
+              <p className="text-slate-900 font-bold mb-4">Scan & Pay</p>
+              <div className="bg-white p-4 rounded-2xl shadow-sm mb-4 border border-slate-200">
+                {/* UPI QR Generator using qrserver API */}
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${store.config?.upiId || ""}&pn=${store.config?.upiName || store.name}&am=${cartTotal}&cu=INR`)}`} 
+                  alt="UPI QR Code"
+                  className="w-40 h-40"
+                />
+              </div>
+              <p className="text-slate-500 text-[10px] text-center mb-1 uppercase font-bold tracking-widest">Pay to UPI ID</p>
+              <p className="text-indigo-600 font-bold text-sm break-all text-center">{store.config?.upiId || "UPI Not Set"}</p>
+              <p className="text-slate-400 text-[10px] mt-4 text-center">Scan with PhonePe, Google Pay, or Paytm</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success State */}
+      {orderSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-10 max-w-sm text-center shadow-2xl">
+            <div className="text-6xl mb-6">🎉</div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">Order Received!</h3>
+            <p className="text-slate-500 mb-8">We've notified the store owner. They will verify your payment and contact you shortly.</p>
+            <button onClick={() => { setOrderSuccess(false); setShowCheckout(false); }} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold">
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

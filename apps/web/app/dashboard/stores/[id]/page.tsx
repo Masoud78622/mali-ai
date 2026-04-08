@@ -11,13 +11,34 @@ export default function StorePage() {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"products" | "orders">("products");
+  const [tab, setTab] = useState<"products" | "orders" | "settings">("products");
+  const [upiId, setUpiId] = useState("");
+  const [upiName, setUpiName] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) { router.push("/auth/login"); return; }
     fetchAll(token);
   }, [id]);
+
+  useEffect(() => {
+    if (store?.config) {
+      setUpiId(store.config.upiId || "");
+      setUpiName(store.config.upiName || "");
+    }
+  }, [store]);
+
+  const saveSettings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const updatedConfig = { ...store.config, upiId, upiName };
+      await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/stores/${id}`, { config: updatedConfig }, { headers: { Authorization: `Bearer ${token}` } });
+      alert("Settings saved successfully!");
+      fetchAll(token!);
+    } catch (err) {
+      alert("Failed to save settings.");
+    }
+  };
 
   const fetchAll = async (token: string) => {
     try {
@@ -89,7 +110,7 @@ export default function StorePage() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
-          {["products", "orders"].map((t) => (
+          {["products", "orders", "settings"].map((t) => (
             <button
               key={t}
               onClick={() => setTab(t as any)}
@@ -150,25 +171,82 @@ export default function StorePage() {
                 <div className="text-4xl mb-3">📬</div>
                 <p>No orders yet.</p>
               </div>
-            ) : orders.map((o) => (
-              <div key={o.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <span className="text-white font-medium">{o.customerName}</span>
-                    <span className="text-slate-400 text-sm ml-2">{o.customerEmail}</span>
+            ) : orders.map((o) => {
+              const confirmPayment = async (orderId: string) => {
+                if (!confirm("Is payment confirmed via UPI?")) return;
+                const token = localStorage.getItem("token");
+                await axios.patch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders/${orderId}/status`, { status: "PAID" }, { headers: { Authorization: `Bearer ${token}` } });
+                fetchAll(token!);
+              };
+
+              return (
+                <div key={o.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className="text-white font-medium">{o.customerName}</span>
+                      <span className="text-slate-400 text-sm ml-2">{o.customerEmail}</span>
+                      {o.customerPhone && <span className="text-slate-500 text-xs ml-2">({o.customerPhone})</span>}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-white font-semibold">₹{Number(o.total).toFixed(2)}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        o.status === "PAID" ? "bg-green-500/20 text-green-400" :
+                        o.status === "PENDING" ? "bg-amber-500/20 text-amber-400" :
+                        "bg-slate-600 text-slate-400"
+                      }`}>{o.status}</span>
+                      {o.status === "PENDING" && (
+                        <button 
+                          onClick={() => confirmPayment(o.id)}
+                          className="bg-green-600 hover:bg-green-700 text-white text-[10px] uppercase font-bold px-3 py-1 rounded transition"
+                        >
+                          Confirm Payment ✓
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-white font-semibold">₹{Number(o.total).toFixed(2)}</span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      o.status === "PAID" ? "bg-green-500/20 text-green-400" :
-                      o.status === "PENDING" ? "bg-yellow-500/20 text-yellow-400" :
-                      "bg-slate-600 text-slate-400"
-                    }`}>{o.status}</span>
-                  </div>
+                  <p className="text-slate-500 text-xs">{new Date(o.createdAt).toLocaleString()}</p>
                 </div>
-                <p className="text-slate-500 text-xs">{new Date(o.createdAt).toLocaleString()}</p>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {tab === "settings" && (
+          <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 max-w-2xl">
+            <h3 className="text-xl font-bold text-white mb-6">Store Payment Settings</h3>
+            
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="block text-slate-400 text-sm mb-2">UPI ID (VPA)</label>
+                <input 
+                  type="text" 
+                  value={upiId} 
+                  onChange={(e) => setUpiId(e.target.value)} 
+                  placeholder="e.g. masud@okaxis"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none"
+                />
+                <p className="text-slate-500 text-xs mt-1">Shoppers will pay directly to this ID via QR code.</p>
               </div>
-            ))}
+
+              <div>
+                <label className="block text-slate-400 text-sm mb-2">Display Name</label>
+                <input 
+                  type="text" 
+                  value={upiName} 
+                  onChange={(e) => setUpiName(e.target.value)} 
+                  placeholder="e.g. Shaikh Masud"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <button 
+              onClick={saveSettings}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold transition"
+            >
+              Save Payment Settings
+            </button>
           </div>
         )}
       </div>

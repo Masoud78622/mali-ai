@@ -3,15 +3,12 @@ import { prisma } from "@mali-ai/db";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 
-
-
 function getRazorpay() {
   return new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID!,
     key_secret: process.env.RAZORPAY_KEY_SECRET!,
   });
 }
-
 
 export default async function orderRoutes(app: FastifyInstance) {
   // Create Razorpay order (called before checkout)
@@ -64,6 +61,63 @@ export default async function orderRoutes(app: FastifyInstance) {
       currency: razorpayOrder.currency,
       key: process.env.RAZORPAY_KEY_ID,
     };
+  });
+
+  // Create Manual UPI Order
+  app.post("/manual-create", async (req, reply) => {
+    const { storeId, customerName, customerEmail, customerPhone, customerAddress, items } = req.body as any;
+
+    const store = await prisma.store.findUnique({ 
+      where: { id: storeId },
+      include: { user: true }
+    });
+    if (!store) return reply.code(404).send({ error: "Store not found" });
+
+    // Calculate total
+    let total = 0;
+    for (const item of items) {
+      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+      if (!product) continue;
+      total += Number(product.price) * item.quantity;
+    }
+
+    // Create pending order in DB
+    const order = await prisma.order.create({
+      data: {
+        storeId,
+        customerName,
+        customerEmail,
+        customerPhone,
+        customerAddress,
+        items: {
+          create: items.map((item: any) => ({
+            productId: item.productId,
+            title: item.title,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+        },
+        total,
+        status: "PENDING",
+      },
+    });
+
+    // Send WhatsApp notification to owner
+    const ownerPhone = store.user.whatsappNumber || store.user.phone;
+    if (ownerPhone) {
+      try {
+        const { sendOrderNotification } = require("../utils/whatsapp");
+        sendOrderNotification(ownerPhone, {
+          customerName,
+          amount: total,
+          orderId: order.id,
+        }).catch((err: any) => console.error("❌ WhatsApp Notification Error:", err));
+      } catch (err) {
+        console.error("❌ Failed to load WhatsApp utility:", err);
+      }
+    }
+
+    return { success: true, orderId: order.id };
   });
 
   // Get orders for store owner

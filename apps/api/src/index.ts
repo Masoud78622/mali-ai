@@ -87,6 +87,11 @@ const start = async () => {
     await prisma.$connect();
     console.log("✅ Database connected successfully");
 
+    // Initialize WhatsApp
+    console.log("🔗 Connecting to WhatsApp...");
+    const { initWhatsApp } = require("./utils/whatsapp");
+    initWhatsApp().catch((err: any) => console.error("❌ WhatsApp Init Error:", err));
+
     await app.listen({ port: Number(process.env.PORT) || 3001, host: "0.0.0.0" });
     console.log("🚀 API running on port", process.env.PORT || 3001);
   } catch (err) {
