@@ -96,6 +96,7 @@ export default function StorePage() {
                 finalDomain = host.replace("www.", "");
               }
             }
+            finalDomain = finalDomain.replace("www.", "");
             return (
               <a
                 href={`http://${store.subdomain}.${finalDomain}`}

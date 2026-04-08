@@ -169,6 +169,7 @@ export default function DashboardPage() {
                       finalDomain = host.replace("www.", "");
                     }
                   }
+                  finalDomain = finalDomain.replace("www.", "");
 
                   return (
                     <div key={store.id}
