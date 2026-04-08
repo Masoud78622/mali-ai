@@ -203,6 +203,18 @@ export default function StorePage() {
                       <span className="text-white font-medium">{o.customerName}</span>
                       <span className="text-slate-400 text-sm ml-2">{o.customerEmail}</span>
                       {o.customerPhone && <span className="text-slate-500 text-xs ml-2">({o.customerPhone})</span>}
+                      
+                      {/* Address and UPI ID display limit */}
+                      <div className="mt-2 text-xs">
+                        <p className="text-slate-500 max-w-sm truncate" title={typeof o.customerAddress === 'object' ? o.customerAddress?.address : o.customerAddress}>
+                          📍 {typeof o.customerAddress === 'object' ? o.customerAddress?.address || o.customerAddress?.street : o.customerAddress}
+                        </p>
+                        {(typeof o.customerAddress === 'object' && o.customerAddress?.upiId) && (
+                          <p className="text-indigo-400 font-medium mt-1">
+                            💳 Paid from UPI: {o.customerAddress.upiId}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-white font-semibold">₹{Number(o.total).toFixed(2)}</span>

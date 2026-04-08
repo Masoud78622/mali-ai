@@ -111,6 +111,7 @@ export default async function orderRoutes(app: FastifyInstance) {
           customerName,
           amount: total,
           orderId: order.id,
+          upiId: customerAddress?.upiId,
         }).catch((err: any) => console.error("❌ WhatsApp Notification Error:", err));
       } catch (err) {
         console.error("❌ Failed to load WhatsApp utility:", err);

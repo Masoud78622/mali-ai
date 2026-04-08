@@ -11,7 +11,7 @@ export default function PublicStorePage() {
   const [cart, setCart] = useState<any[]>([]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
-  const [customer, setCustomer] = useState({ name: "", email: "", phone: "", address: "" });
+  const [customer, setCustomer] = useState({ name: "", email: "", phone: "", address: "", upiId: "" });
   const [submitting, setSubmitting] = useState(false);
 
   const cartTotal = cart.reduce((sum, item) => sum + (Number(item.price) * (item.quantity || 1)), 0);
@@ -50,7 +50,7 @@ export default function PublicStorePage() {
         customerName: customer.name,
         customerEmail: customer.email || "no-email@mali.ai",
         customerPhone: customer.phone,
-        customerAddress: { street: customer.address },
+        customerAddress: { address: customer.address, upiId: customer.upiId },
         items: cart.map(i => ({ productId: i.id, title: i.title, price: i.price, quantity: 1 }))
       });
       setOrderSuccess(true);
@@ -203,7 +203,11 @@ export default function PublicStorePage() {
               <div className="space-y-4 mb-6">
                 <input type="text" placeholder="Full Name" value={customer.name} onChange={e => setCustomer({...customer, name: e.target.value})} className="w-full bg-white text-slate-900 border border-slate-300 placeholder:text-slate-400 rounded-xl px-4 py-3 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition" />
                 <input type="text" placeholder="WhatsApp Number" value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} className="w-full bg-white text-slate-900 border border-slate-300 placeholder:text-slate-400 rounded-xl px-4 py-3 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition" />
-                <textarea placeholder="Shipping Address" value={customer.address} onChange={e => setCustomer({...customer, address: e.target.value})} className="w-full bg-white text-slate-900 border border-slate-300 placeholder:text-slate-400 rounded-xl px-4 py-3 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition h-24 resize-none" />
+                <textarea placeholder="Shipping Address" value={customer.address} onChange={e => setCustomer({...customer, address: e.target.value})} className="w-full bg-white text-slate-900 border border-slate-300 placeholder:text-slate-400 rounded-xl px-4 py-3 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition h-20 resize-none" />
+                <div className="pt-2">
+                  <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1 block">Your UPI ID (For Verification)</label>
+                  <input type="text" placeholder="e.g. 9876543210@ybl" value={customer.upiId} onChange={e => setCustomer({...customer, upiId: e.target.value})} className="w-full bg-indigo-50/50 text-indigo-900 border border-indigo-200 placeholder:text-indigo-300 rounded-xl px-4 py-3 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition" />
+                </div>
               </div>
 
               <div className="border-t pt-4">

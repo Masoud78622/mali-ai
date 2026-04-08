@@ -44,7 +44,7 @@ export async function initWhatsApp() {
   return sock;
 }
 
-export async function sendOrderNotification(ownerPhone: string, orderData: { customerName: string; amount: number; orderId: string }) {
+export async function sendOrderNotification(ownerPhone: string, orderData: { customerName: string; amount: number; orderId: string, upiId?: string }) {
   if (!sock) {
     console.log("⚠️ WhatsApp not initialized. Re-initializing...");
     await initWhatsApp();
@@ -57,7 +57,8 @@ export async function sendOrderNotification(ownerPhone: string, orderData: { cus
     return;
   }
 
-  const message = `🛍️ *New Order!*\n\nCustomer: ${orderData.customerName}\nAmount: ₹${orderData.amount}\n\nCheck your UPI for payment confirmation.\nOrder ID: ${orderData.orderId}`;
+  const upiText = orderData.upiId ? `\nPaid from UPI: ${orderData.upiId}` : "";
+  const message = `🛍️ *New Order!*\n\nCustomer: ${orderData.customerName}\nAmount: ₹${orderData.amount}${upiText}\n\nCheck your UPI app for payment confirmation.\nOrder ID: ${orderData.orderId}`;
   
   // Format phone: remove any non-digits, ensure country code
   const cleanPhone = ownerPhone.replace(/\D/g, "");
