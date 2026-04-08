@@ -49,7 +49,7 @@ export default async function storeRoutes(app: FastifyInstance) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const storeCount = await prisma.store.count({ where: { userId } });
     const limits = { FREE: 1, STARTER: 3, PRO: 999 };
-    const isUnlimited = user!.email === "masudshaikh@gmail.com" || user!.plan === "PRO";
+    const isUnlimited = user!.email === "masoudshaikh@gmail.com" || user!.plan === "PRO";
     if (!isUnlimited && storeCount >= limits[user!.plan]) {
       return reply.code(403).send({ error: `Upgrade your plan to create more stores` });
     }
