@@ -38,9 +38,16 @@ export default function AddProductPage() {
     setError("");
     try {
       const token = localStorage.getItem("token");
+      
+      // Auto-append the image URL if the user forgot to click the 'Add' button
+      const finalImages = [...form.images];
+      if (imageUrl.trim() !== "") {
+        finalImages.push(imageUrl.trim());
+      }
+
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/products`,
-        { ...form, storeId: id, price: Number(form.price), comparePrice: form.comparePrice ? Number(form.comparePrice) : null, stock: Number(form.stock) || 0 },
+        { ...form, images: finalImages, storeId: id, price: Number(form.price), comparePrice: form.comparePrice ? Number(form.comparePrice) : null, stock: Number(form.stock) || 0 },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       router.push(`/dashboard/stores/${id}`);
