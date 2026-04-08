@@ -84,14 +84,12 @@ export default async function storeRoutes(app: FastifyInstance) {
         await prisma.product.createMany({
           data: products.map((p: any) => ({
             storeId: store.id,
-            title: p.title,
-            description: p.description,
-            price: p.price,
-            cost: p.costEstimate || 0,
-            category: p.category || "General",
+            title: String(p.title),
+            description: String(p.description),
+            price: Number(p.price),
             images: [],
             isActive: true,
-            inventory: 100,
+            stock: 100,
           })),
         });
       }
