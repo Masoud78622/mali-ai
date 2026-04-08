@@ -3,10 +3,16 @@ import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
   const host = req.headers.get("host") || "";
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3000";
-  if (host === rootDomain || host === `www.${rootDomain}`) return NextResponse.next();
-  if (host.endsWith(`.${rootDomain}`)) {
-    const subdomain = host.split(".")[0];
+  let rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3000";
+
+  // Force apex domain to fix Vercel www. environmental bugs
+  rootDomain = rootDomain.replace("www.", "");
+  const cleanHost = host.replace("www.", "");
+
+  if (cleanHost === rootDomain) return NextResponse.next();
+  
+  if (cleanHost.endsWith(`.${rootDomain}`)) {
+    const subdomain = cleanHost.split(".")[0];
     return NextResponse.rewrite(new URL(`/store/${subdomain}${req.nextUrl.pathname}`, req.url));
   }
   return NextResponse.next();
