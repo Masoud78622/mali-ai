@@ -12,10 +12,8 @@ const PROVIDERS = [
   { name: "custom",     envKey: "AI_API_KEY",        baseURLEnv: "AI_BASE_URL",                defaultModel: () => process.env.AI_MODEL || "gpt-3.5-turbo" },
 ];
 
-// Determine the stack based on config
 function getStack() {
   const stack = ["gemini", "groq", "cerebras", "sambanova", "openrouter"];
-  // If OpenAI-compatible Gemini endpoint is detected, prioritize custom
   if (process.env.AI_BASE_URL && process.env.AI_BASE_URL.includes("generativelanguage")) {
     stack.unshift("custom");
   }
@@ -32,9 +30,9 @@ function getProviderConfig(name: string) {
 
   let apiKey = process.env[p.envKey]?.trim();
   
-  // Fallback for Gemini specific key
-  if (p.name === "gemini" && !isValid(apiKey)) {
-    apiKey = process.env.GOOGLE_API_KEY?.trim() || process.env.GEMINI_API_KEY?.trim();
+  // Broad environment variable support for Gemini
+  if (name === "gemini" && !isValid(apiKey)) {
+    apiKey = (process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || "").trim();
   }
 
   if (!isValid(apiKey)) return null;
@@ -71,26 +69,55 @@ export async function callAI(prompt: string, maxTokens = 2000): Promise<string> 
   let lastError: any = null;
   const stack = getStack();
 
+  console.log(`🚀 Starting AI Generation Stack: [${stack.join(" -> ")}]`);
+
   for (const providerName of stack) {
     const p = getProviderConfig(providerName);
     if (!p) continue;
 
-    console.log(`🤖 AI Call: ${p.name.toUpperCase()} (Model: ${p.model})`);
     for (const currentKey of p.apiKeys) {
+      console.log(`🤖 Testing Provider: ${p.name.toUpperCase()} (${currentKey.slice(0, 6)}...${currentKey.slice(-4)})`);
+      
       let retryCount = 0;
       while (retryCount <= 1) {
         try {
           if (p.name === "gemini") {
             const genAI = new GoogleGenerativeAI(currentKey);
-            // Ensure model name is formatted correctly (SDK adds 'models/' if missing)
-            const modelName = p.model.includes('/') ? p.model : p.model;
-            const model = genAI.getGenerativeModel({ model: modelName });
-            const result = await model.generateContent({
-              contents: [{ role: "user", parts: [{ text: prompt }] }],
-              generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
-            });
-            return (await result.response).text();
+            
+            // Inline Model Fallback Strategy for Gemini (Super-Resilient)
+            const geminiModels = [
+              p.model, 
+              "gemini-2.0-flash-exp", 
+              "gemini-2.0-flash", 
+              "gemini-1.5-flash-latest", 
+              "gemini-1.5-flash", 
+              "gemini-pro"
+            ].filter((v, i, a) => a.indexOf(v) === i);
+            
+            for (const mId of geminiModels) {
+              try {
+                console.log(`   └─ Attempting Model: ${mId}`);
+                const model = genAI.getGenerativeModel({ model: mId });
+                const result = await model.generateContent({
+                  contents: [{ role: "user", parts: [{ text: prompt }] }],
+                  generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
+                });
+                const responseText = (await result.response).text();
+                if (responseText) {
+                  console.log(`   ✅ Success via ${mId}`);
+                  return responseText;
+                }
+              } catch (gemErr: any) {
+                if (gemErr.message.includes("404") || gemErr.message.includes("not found")) {
+                  console.warn(`   ⚠️ Model ${mId} not found, trying next...`);
+                  continue;
+                }
+                throw gemErr;
+              }
+            }
+            throw new Error("All Gemini models 404'd or failed.");
           } else {
+            console.log(`   └─ Model: ${p.model}`);
             const res = await fetch(`${p.baseURL}${p.baseURL.endsWith('/') ? '' : '/'}chat/completions`, {
               method: "POST",
               headers: {
@@ -104,21 +131,25 @@ export async function callAI(prompt: string, maxTokens = 2000): Promise<string> 
                 temperature: 0.7,
               }),
             });
+            
             if (!res.ok) {
-              const errorBody = await res.text();
-              throw new Error(`HTTP ${res.status}: ${errorBody.slice(0, 100)}`);
+              const body = await res.text();
+              throw new Error(`HTTP ${res.status}: ${body.slice(0, 100)}`);
             }
+            
             const data = await res.json();
-            return data.choices?.[0]?.message?.content || "";
+            const content = data.choices?.[0]?.message?.content;
+            if (content) {
+              console.log(`   ✅ Success via ${p.name}`);
+              return content;
+            }
           }
         } catch (err: any) {
           lastError = err;
-          console.warn(`⚠️ Provider ${p.name} failed: ${err.message}`);
+          console.warn(`   ❌ Entry Failed: ${err.message}`);
           
-          // Retry logic
           if (err.message.includes("429") || err.message.includes("limit") || err.message.includes("404")) {
-            // If 404, maybe the model name is wrong, but we should move to next key/provider
-            break; 
+            break; // Move to next key or next provider
           }
           retryCount++;
           await new Promise(r => setTimeout(r, 1000));
