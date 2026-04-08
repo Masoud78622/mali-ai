@@ -157,10 +157,18 @@ export default function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {stores.map((store: any, i: number) => {
-                  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
-                  const isInvalidDomain = !rootDomain || rootDomain === "undefined";
-                  const fallbackDomain = typeof window !== "undefined" ? window.location.host : "localhost:3000";
-                  const finalDomain = isInvalidDomain ? fallbackDomain : rootDomain;
+                  const envDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+                  let finalDomain = "mali-ai.shop";
+                  if (envDomain && envDomain !== "undefined" && envDomain !== "") {
+                    finalDomain = envDomain;
+                  } else if (typeof window !== "undefined") {
+                    const host = window.location.host;
+                    if (host.includes("localhost")) {
+                      finalDomain = host;
+                    } else {
+                      finalDomain = host.replace("www.", "");
+                    }
+                  }
 
                   return (
                     <div key={store.id}

@@ -83,13 +83,29 @@ export default function StorePage() {
           <Link href="/dashboard" className="text-slate-400 hover:text-white transition">← Dashboard</Link>
           <h1 className="text-white font-bold text-xl">{store?.name}</h1>
         </div>
-          <a
-            href={`http://${store?.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`}
-            target="_blank"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm transition"
-          >
-          View Store
-        </a>
+          {store && (() => {
+            const envDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+            let finalDomain = "mali-ai.shop";
+            if (envDomain && envDomain !== "undefined" && envDomain !== "") {
+              finalDomain = envDomain;
+            } else if (typeof window !== "undefined") {
+              const host = window.location.host;
+              if (host.includes("localhost")) {
+                finalDomain = host;
+              } else {
+                finalDomain = host.replace("www.", "");
+              }
+            }
+            return (
+              <a
+                href={`http://${store.subdomain}.${finalDomain}`}
+                target="_blank"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm transition"
+              >
+                View Store
+              </a>
+            );
+          })()}
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
