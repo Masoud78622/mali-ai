@@ -2,191 +2,151 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const PROVIDERS = [
   { name: "gemini",     envKey: "AI_API_KEY",         baseURL: "", defaultModel: () => "gemini-1.5-flash" },
+  { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1", defaultModel: () => "llama-3.3-70b-versatile" },
   { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",  defaultModel: () => process.env.OPENROUTER_MODEL || "qwen/qwen-2.5-72b-instruct" },
+  { name: "cerebras",   envKey: "CEREBRAS_API_KEY",   baseURL: "https://api.cerebras.ai/v1",    defaultModel: () => "llama3.1-8b" },
+  { name: "sambanova",  envKey: "SAMBANOVA_API_KEY",  baseURL: "https://api.sambanova.ai/v1",   defaultModel: () => "Meta-Llama-3.3-70B-Instruct" },
   { name: "openai",     envKey: "OPENAI_API_KEY",     baseURL: "https://api.openai.com/v1",     defaultModel: () => "gpt-4o-mini" },
-  { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1",defaultModel: () => "llama-3.3-70b-versatile" },
   { name: "together",   envKey: "TOGETHER_API_KEY",   baseURL: "https://api.together.xyz/v1",   defaultModel: () => "meta-llama/Llama-3-70b-chat-hf" },
   { name: "mistral",    envKey: "MISTRAL_API_KEY",    baseURL: "https://api.mistral.ai/v1",     defaultModel: () => "mistral-small-latest" },
   { name: "custom",     envKey: "AI_API_KEY",        baseURLEnv: "AI_BASE_URL",                defaultModel: () => process.env.AI_MODEL || "gpt-3.5-turbo" },
 ];
 
+const FAILOVER_STACK = ["gemini", "groq", "cerebras", "sambanova", "openrouter"];
+
 function isValid(key?: string) {
   return !!key && key.length > 10 && !key.includes("dummy");
 }
 
-function getProvider() {
-  for (const p of PROVIDERS) {
-    const apiKey = process.env[p.envKey]?.trim();
-    if (!isValid(apiKey)) continue;
-    const baseURL = (p as any).baseURLEnv
-      ? process.env[(p as any).baseURLEnv] || ""
-      : (p as any).baseURL;
-    if (p.name === "custom" && !baseURL) continue;
-    return { name: p.name, apiKey: apiKey!, baseURL, model: p.defaultModel() };
-  }
-  throw new Error(
-    "No valid AI API key found. Set one of: AI_API_KEY, OPENROUTER_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, ANTHROPIC_API_KEY"
-  );
+function getProviderConfig(name: string) {
+  const p = PROVIDERS.find(x => x.name === name);
+  if (!p) return null;
+
+  const apiKey = process.env[p.envKey]?.trim();
+  if (!isValid(apiKey)) return null;
+
+  const baseURL = (p as any).baseURLEnv
+    ? process.env[(p as any).baseURLEnv] || ""
+    : (p as any).baseURL;
+  
+  if (p.name === "custom" && !baseURL) return null;
+
+  return { 
+    name: p.name, 
+    apiKeys: apiKey!.split(",").map(k => k.trim()).filter(Boolean), 
+    baseURL, 
+    model: p.defaultModel() 
+  };
 }
 
 function extractJSON(text: string) {
-  // 1. Remove markdown code blocks (backticks)
   let cleanText = text.replace(/```(?:json)?\s*([\s\S]*?)\s*```/g, '$1').trim();
-  
   try {
-    // 2. Try direct parse
     return JSON.parse(cleanText);
   } catch (err) {
-    // 3. Last-ditch: Try to find anything between { } or [ ]
     try {
       const match = cleanText.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
       if (match) return JSON.parse(match[0]);
-    } catch (innerErr) {
-      // Fall through to main error
-    }
-    
-    console.error("❌ Failed to parse AI JSON. Raw text snippet:", text.slice(0, 500));
-    throw new Error("AI response was malformed. Please try again.");
+    } catch {}
+    console.error("❌ Failed to parse AI JSON:", text.slice(0, 500));
+    throw new Error("AI response malformed. Please try again.");
   }
 }
 
-export async function callAI(prompt: string, maxTokens = 1000): Promise<string> {
-  const p = getProvider();
-  
-  // NATIVE GEMINI SDK WITH SELF-HEALING FALLBACK
-  if (p.name === "gemini") {
-    const candidates = [
-      "gemini-2.5-flash",
-      "gemini-1.5-flash",
-      "gemini-2.0-flash",
-      "gemini-flash-lite",
-      "gemini-flash-latest"
-    ];
+export async function callAI(prompt: string, maxTokens = 2000): Promise<string> {
+  let lastError: any = null;
+  for (const providerName of FAILOVER_STACK) {
+    const p = getProviderConfig(providerName);
+    if (!p) continue;
 
-    console.log(`🤖 Starting Gemini Multi-Key Discovery...`);
-    const keys = p.apiKey.split(",").map(k => k.trim()).filter(Boolean);
-    let lastError: any = null;
-
-    for (const modelName of candidates) {
-      for (const currentKey of keys) {
-        let retryCount = 0;
-        const maxRetries = 1; // 2 total attempts per key
-
-        while (retryCount <= maxRetries) {
-          try {
-            process.stdout.write(`   ↳ Trying [${modelName}] with Key: ${currentKey.slice(0, 6)}... `);
+    console.log(`🤖 AI Call: ${p.name.toUpperCase()}`);
+    for (const currentKey of p.apiKeys) {
+      let retryCount = 0;
+      while (retryCount <= 1) {
+        try {
+          if (p.name === "gemini") {
             const genAI = new GoogleGenerativeAI(currentKey);
-            const model = genAI.getGenerativeModel({ model: modelName });
+            const model = genAI.getGenerativeModel({ model: p.model });
             const result = await model.generateContent({
               contents: [{ role: "user", parts: [{ text: prompt }] }],
               generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
             });
-            const response = await result.response;
-            const text = response.text();
-            console.log(`✅ SUCCESS!`);
-            return text;
-          } catch (err: any) {
-            lastError = err;
-            const isQuotaError = err.message.includes("429");
-            const isRetryable = isQuotaError || err.message.includes("503");
-
-            if (isQuotaError && keys.length > 1 && keys.indexOf(currentKey) < keys.length - 1) {
-              console.log(`⚠️ QUOTA EXCEEDED. Switching to Next Key...`);
-              break; // Switch to the next key for this model
-            }
-
-            if (isRetryable && retryCount < maxRetries) {
-              console.log(`⚠️ BUSY/QUOTA. Retrying in 2s...`);
-              retryCount++;
-              await new Promise(r => setTimeout(r, 2000));
-              continue;
-            }
-
-            console.log(`❌ FAILED: ${err.message.slice(0, 80)}...`);
-            break; // Move to next key or model
+            return (await result.response).text();
+          } else {
+            const res = await fetch(`${p.baseURL}${p.baseURL.endsWith('/') ? '' : '/'}chat/completions`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${currentKey}`,
+              },
+              body: JSON.stringify({
+                model: p.model,
+                messages: [{ role: "user", content: prompt }],
+                max_tokens: maxTokens,
+                temperature: 0.7,
+              }),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            return data.choices?.[0]?.message?.content || "";
           }
+        } catch (err: any) {
+          lastError = err;
+          if (err.message.includes("429") || err.message.includes("limit")) break;
+          retryCount++;
+          await new Promise(r => setTimeout(r, 1000));
         }
       }
     }
-    throw new Error(`Gemini Discovery Failed. All models (Flash, Pro) were rejected by your API key. Last error: ${lastError}`);
   }
-
-  // STANDARD OPENAI-COMPATIBLE FETCH
-  const fullURL = `${p.baseURL}${p.baseURL.endsWith('/') ? '' : '/'}chat/completions`;
-  console.log(`🤖 Calling AI provider: ${p.name} (model: ${p.model})`);
-  console.log(`🔗 Request URL: ${fullURL}`);
-  
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${p.apiKey}`,
-  };
-  
-  if (p.name === "openrouter") {
-    headers["HTTP-Referer"] = "https://mali-ai.com";
-    headers["X-Title"] = "Mali AI";
-  }
-
-  const res = await fetch(fullURL, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      model: p.model,
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: maxTokens,
-      temperature: 0.7,
-    }),
-  });
-
-  const responseText = await res.text();
-  if (!responseText) {
-    throw new Error(`${p.name} error: Empty response from server. (Status: ${res.status})`);
-  }
-
-  let data: any;
-  try {
-    data = JSON.parse(responseText);
-  } catch (err) {
-    console.error(`❌ AI Provider returned non-JSON (${p.name}):`, responseText);
-    throw new Error(`${p.name} returned malformed response. Check logs for details.`);
-  }
-
-  if (!res.ok) {
-    console.error(`❌ AI Provider Error (${p.name}):`, JSON.stringify(data));
-    throw new Error(`${p.name} error: ${data.error?.message || JSON.stringify(data)}`);
-  }
-  
-  return data.choices?.[0]?.message?.content || "";
+  throw new Error(`AI Failover Failed: ${lastError?.message}`);
 }
 
-export async function generateStoreConfig(description: string, niche?: string, audience?: string) {
-  const prompt = `Expert e-commerce strategist. Generate a dropshipping store config.
-INPUT:"${description}"${niche ? `\nNiche:${niche}` : ""}${audience ? `\nAudience:${audience}` : ""}
-Reply ONLY valid JSON:
-{"name":"store name","tagline":"tagline","niche":"niche","targetAudience":"audience","brandVoice":"casual|professional|luxury","theme":{"primaryColor":"#hex","secondaryColor":"#hex","accentColor":"#hex","backgroundColor":"#hex","textColor":"#hex","fontHeading":"Google Font","fontBody":"Google Font","style":"minimal|bold|elegant|playful|tech","borderRadius":"8px"},"seo":{"metaTitle":"<60 chars","metaDescription":"<160 chars","keywords":["k1","k2","k3"]},"pages":{"hero":{"headline":"headline","subheadline":"subheadline","ctaText":"Shop Now","features":[{"icon":"🚚","title":"Free Shipping","description":"On orders over ₹500"},{"icon":"🔒","title":"Secure Payment","description":"100% secure checkout"},{"icon":"↩️","title":"Easy Returns","description":"30-day returns"}]},"about":"about page text","shipping":"shipping policy","returns":"returns policy"},"productCategories":["cat1","cat2"],"pricingStrategy":"budget|mid|premium","estimatedMargin":35}`;
-  
-  const text = await callAI(prompt, 2000);
+/**
+ * generateFullStore: Batches store config and product generation into ONE call.
+ * PRO UPGRADE: Adaptive Niche Authority Logic.
+ */
+export async function generateFullStore(description: string, niche?: string, audience?: string) {
+  const prompt = `Adaptive Store Generation
+TASK: Analyze the niche and generate a complete, high-converting "Boutique Brand" identity.
+INPUT: "${description}" | Niche: ${niche} | Audience: ${audience}
+
+STEP 1: Identify Persona (Industrial-Expert, Aesthetic-Stylist, Tech-Innovator, or Caring-Friend).
+STEP 2: Generate config with niche-appropriate authority signals (Trust Badges, Professional Tone).
+- Themes: Industrial (Rugged/High-Contrast), Baby/Pets (Warm/Soft), Beauty (Minimal/Elegant), Tech (Modern/Dark).
+
+Output ONLY minified JSON:
+{
+  "config": {
+    "name":"", "tagline":"", "niche":"", "targetAudience":"", "brandVoice":"authoritative|playful|minimalist|emotional",
+    "brandStory": "1-sentence expertise/mission statement.",
+    "theme": {"primaryColor":"#hex", "secondaryColor":"#hex", "accentColor":"#hex", "backgroundColor":"#hex", "textColor":"#hex", "fontHeading":"", "fontBody":"", "style":"minimal|bold|elegant|playful|tech", "borderRadius":"8px"},
+    "seo": {"metaTitle":"", "metaDescription":"", "keywords":[]},
+    "pages": {"hero":{"headline":"", "subheadline":"", "ctaText":"", "features":[{"icon":"🚚|🔒|⭐", "title":"", "description":""}]}, "about":"", "shipping":"", "returns":""},
+    "productCategories":[], "pricingStrategy":"budget|mid|premium", "estimatedMargin":35
+  },
+  "products": [{"title":"","description":"Emotional hook + Benefit description", "price":29.99,"costEstimate":8.0,"margin":72,"category":"","tags":[],"searchKeywords":[]}]
+}
+Generate 8 products. Add 3 trust-building features in Hero (e.g., 'Eco-Frendly', 'Pro-Grade', 'Secure').`;
+
+  const text = await callAI(prompt, 3500);
   return extractJSON(text);
 }
 
-export async function generateProductDescription(title: string, niche: string, voice: string) {
-  const prompt = `Write SEO product description for ${niche} store.
-Product: ${title} | Voice: ${voice}
-2 paragraphs: emotional hook + benefits. Text only, no markdown.`;
-  return await callAI(prompt, 500);
+// Legacy functions
+export async function generateStoreConfig(description: string, niche?: string, audience?: string) {
+  const prompt = `Adaptive Store Config for: ${description}. Output ONLY minified JSON.`;
+  return extractJSON(await callAI(prompt, 1000));
 }
 
 export async function suggestProducts(niche: string, audience: string, pricing: string, count = 8) {
-  const prompt = `Suggest ${count} winning dropshipping products.
-Niche:${niche}|Audience:${audience}|Pricing:${pricing}
-Reply ONLY JSON array:[{"title":"","description":"","price":29.99,"costEstimate":8.00,"margin":72,"category":"","tags":["t1"],"searchKeywords":["k1"]}]`;
-  
-  const text = await callAI(prompt, 2000);
-  try {
-    return extractJSON(text);
-  } catch (err) {
-    console.error("❌ Failed to parse AI product suggestions. Raw text:", text);
-    return [];
-  }
+  const prompt = `Suggest ${count} winning products for niche "${niche}" (${audience}). Adaptive Tone. Output ONLY minified JSON array.`;
+  return extractJSON(await callAI(prompt, 2000));
 }
 
-export default { callAI, generateStoreConfig, generateProductDescription, suggestProducts };
+export async function generateProductDescription(title: string, niche: string, voice: string) {
+  const prompt = `ADAPTIVE STORYTELLER: Write description for "${title}" (${niche}). Voice: ${voice}. Focus on EMOTIONAL BENEFITS or TECHNICAL AUTHORITY. Text only.`;
+  return await callAI(prompt, 400);
+}
+
+export default { callAI, generateFullStore, generateStoreConfig, generateProductDescription, suggestProducts };

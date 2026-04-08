@@ -54,15 +54,19 @@ export default async function storeRoutes(app: FastifyInstance) {
       return reply.code(403).send({ error: `Upgrade your plan to create more stores` });
     }
 
+    if (description.length < 10) {
+      return reply.code(400).send({ error: "Description too short. Please provide more details about your store niche." });
+    }
+
     try {
-      console.log(`🚀 AI Store Generation Started: "${description.slice(0, 40)}..."`);
+      console.log(`🚀 AI Store Generation (Batched): "${description.slice(0, 40)}..."`);
       
-      // PHASE 1: Generate Store Branding & Design
-      console.log("🎨 Generating design & branding...");
-      const config = await generateStoreConfig(description, niche, targetAudience);
+      const { generateFullStore } = require("@mali-ai/ai-engine");
+      const { config, products } = await generateFullStore(description, niche, targetAudience);
+      
       const subdomain = nanoid(10).toLowerCase();
 
-      // PHASE 2: Create Store
+      // Create Store
       const store = await prisma.store.create({
         data: {
           userId,
@@ -74,32 +78,25 @@ export default async function storeRoutes(app: FastifyInstance) {
         },
       });
 
-      // PHASE 3: Generate Products
-      console.log(`📦 Generating products for niche: ${config.niche}...`);
-      const suggestedProducts = await suggestProducts(
-        config.niche,
-        config.targetAudience,
-        config.pricingStrategy || "mid"
-      );
-
-      if (suggestedProducts && suggestedProducts.length > 0) {
-        console.log(`✨ Saving ${suggestedProducts.length} AI-generated products...`);
+      // Saving AI-generated products
+      if (products && products.length > 0) {
+        console.log(`✨ Saving ${products.length} AI-generated products...`);
         await prisma.product.createMany({
-          data: suggestedProducts.map((p: any) => ({
+          data: products.map((p: any) => ({
             storeId: store.id,
             title: p.title,
             description: p.description,
             price: p.price,
             cost: p.costEstimate || 0,
             category: p.category || "General",
-            images: [], // Images would be added via Ali Sourcing later
+            images: [],
             isActive: true,
             inventory: 100,
           })),
         });
       }
 
-      console.log(`✅ Store "${store.name}" successfully created!`);
+      console.log(`✅ Store "${store.name}" created with ${products?.length || 0} products!`);
       return store;
     } catch (err: any) {
       console.error("❌ AI Generation Error:", err.message);
