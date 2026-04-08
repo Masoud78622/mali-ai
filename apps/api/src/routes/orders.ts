@@ -106,7 +106,7 @@ export default async function orderRoutes(app: FastifyInstance) {
     const ownerPhone = store.user.whatsappNumber || store.user.phone;
     if (ownerPhone) {
       try {
-        const { sendOrderNotification } = require("../utils/whatsapp");
+        const { sendOrderNotification } = await import("../utils/whatsapp.js");
         sendOrderNotification(ownerPhone, {
           customerName,
           amount: total,

@@ -1,18 +1,20 @@
-import makeWASocket, { 
-  useMultiFileAuthState, 
-  DisconnectReason, 
-  WASocket 
-} from "@whiskeysockets/baileys";
 import path from "path";
 import fs from "fs";
 
-let sock: WASocket | null = null;
+let sock: any = null;
 
 export async function initWhatsApp() {
   const authPath = path.join(process.cwd(), "whatsapp_auth");
   if (!fs.existsSync(authPath)) {
     fs.mkdirSync(authPath, { recursive: true });
   }
+
+  // Dynamic import for ESM package in CJS environment
+  const { 
+    default: makeWASocket, 
+    useMultiFileAuthState, 
+    DisconnectReason 
+  } = await import("@whiskeysockets/baileys");
 
   const { state, saveCreds } = await useMultiFileAuthState(authPath);
 
@@ -23,7 +25,7 @@ export async function initWhatsApp() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", (update) => {
+  sock.ev.on("connection.update", (update: any) => {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {

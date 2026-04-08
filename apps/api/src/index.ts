@@ -89,7 +89,7 @@ const start = async () => {
 
     // Initialize WhatsApp
     console.log("🔗 Connecting to WhatsApp...");
-    const { initWhatsApp } = require("./utils/whatsapp");
+    const { initWhatsApp } = await import("./utils/whatsapp.js");
     initWhatsApp().catch((err: any) => console.error("❌ WhatsApp Init Error:", err));
 
     await app.listen({ port: Number(process.env.PORT) || 3001, host: "0.0.0.0" });
