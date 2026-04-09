@@ -151,7 +151,7 @@ export default function PublicStorePage() {
 
                 <div className={`aspect-square relative overflow-hidden ${!hasImage ? 'skeleton' : 'bg-slate-100'}`}>
                   {hasImage ? (
-                    <img src={p.images[0]} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={p.images[0].replace("http://", "https://")} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl opacity-40 group-hover:scale-110 transition-transform duration-500">
                       {getNicheIcon(store.config?.niche || store.niche)}
