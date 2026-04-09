@@ -80,25 +80,14 @@ export default async function storeRoutes(app: FastifyInstance) {
 
       // Saving AI-generated products
       if (products && products.length > 0) {
-        console.log(`✨ Saving ${products.length} AI-generated products with PROMO images...`);
-        const promoImages = [
-          "https://images.unsplash.com/photo-1515823662972-da6a2e4d3002?w=800&q=80",
-          "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80",
-          "https://images.unsplash.com/photo-1596431940989-106527ba7ea3?w=800&q=80",
-          "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800&q=80",
-          "https://images.unsplash.com/photo-1579888944510-9118b6ec44c4?w=800&q=80",
-          "https://images.unsplash.com/photo-1607328905335-51543b5ff255?w=800&q=80",
-          "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&q=80",
-          "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=800&q=80"
-        ];
-        
+        console.log(`✨ Saving ${products.length} AI-generated products...`);
         await prisma.product.createMany({
-          data: products.map((p: any, i: number) => ({
+          data: products.map((p: any) => ({
             storeId: store.id,
             title: String(p.title),
             description: String(p.description),
             price: Number(p.price),
-            images: [promoImages[i % promoImages.length]],
+            images: [],
             isActive: true,
             stock: 100,
           })),
