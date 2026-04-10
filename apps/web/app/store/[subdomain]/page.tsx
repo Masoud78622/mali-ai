@@ -7,10 +7,15 @@ import { notFound } from "next/navigation";
 export const revalidate = 3600;
 
 async function getStoreData(subdomain: string) {
+  // Use environment variable or fallback to production Railway URL
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mali-ai-production.up.railway.app";
+  
   try {
-    const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/stores/subdomain/${subdomain}`);
+    console.log(`📡 Fetching store data for: ${subdomain} via ${apiUrl}`);
+    const { data } = await axios.get(`${apiUrl}/api/stores/subdomain/${subdomain}`);
     return data;
-  } catch (err) {
+  } catch (err: any) {
+    console.error(`❌ API Fetch Error for ${subdomain}:`, err.response?.status || err.message);
     return null;
   }
 }

@@ -14,11 +14,19 @@ export function middleware(req: NextRequest) {
   rootDomain = rootDomain.replace("www.", "");
   const cleanHost = host.replace("www.", "");
 
-  if (cleanHost === rootDomain) return NextResponse.next();
+  // If we are on the base domain, just proceed normally
+  if (cleanHost === rootDomain || cleanHost === "localhost:3000") {
+    return NextResponse.next();
+  }
   
+  // If it's a subdomain, rewrite to /store/[subdomain]
   if (cleanHost.endsWith(`.${rootDomain}`)) {
-    const subdomain = cleanHost.split(".")[0];
-    return NextResponse.rewrite(new URL(`/store/${subdomain}${req.nextUrl.pathname}`, req.url));
+    const subdomain = cleanHost.replace(`.${rootDomain}`, "");
+    // Prevent double-rewriting static assets
+    if (subdomain && !req.nextUrl.pathname.startsWith("/_next")) {
+      console.log(`🌀 Rewriting ${cleanHost} to /store/${subdomain}`);
+      return NextResponse.rewrite(new URL(`/store/${subdomain}${req.nextUrl.pathname}`, req.url));
+    }
   }
   return NextResponse.next();
 }
