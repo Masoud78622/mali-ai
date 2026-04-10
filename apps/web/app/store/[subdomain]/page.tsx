@@ -2,9 +2,9 @@ import StoreClient from "./StoreClient";
 import axios from "axios";
 import { notFound } from "next/navigation";
 
-// Set the cache to revalidate every 1 hour (3600 seconds)
-// This ensures that 1,000,000 visitors won't crash the database!
-export const revalidate = 3600;
+// Set the cache to revalidate every 10 seconds
+// This ensures that new stores are discovered instantly without pushes!
+export const revalidate = 10;
 
 async function getStoreData(subdomain: string) {
   // Use environment variable or fallback to production Railway URL
