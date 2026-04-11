@@ -20,13 +20,16 @@ async function getStoreData(subdomain: string) {
   }
 }
 
-export default async function PublicStorePage({ params }: { params: { subdomain: string } }) {
-  const { subdomain } = params;
+export default async function PublicStorePage({ params }: { params: Promise<{ subdomain: string }> }) {
+  const { subdomain } = await params;
   const store = await getStoreData(subdomain);
 
   if (!store) {
     notFound();
   }
 
-  return <StoreClient store={store} />;
+  // Serialize Prisma specific objects (like Decimal) for the Client Component
+  const serializedStore = JSON.parse(JSON.stringify(store));
+
+  return <StoreClient store={serializedStore} />;
 }

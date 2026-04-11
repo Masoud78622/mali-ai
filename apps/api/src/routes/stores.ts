@@ -35,6 +35,7 @@ export default async function storeRoutes(app: FastifyInstance) {
       where: { subdomain },
       include: {
         products: { where: { isActive: true } },
+        user: { select: { whatsappNumber: true } }
       },
     });
     if (!store) return reply.code(404).send({ error: "Store not found" });
@@ -87,6 +88,8 @@ export default async function storeRoutes(app: FastifyInstance) {
             title: String(p.title),
             description: String(p.description),
             price: Number(p.price),
+            soldCount: Number(p.soldCount || 0),
+            viewCount: Number(p.viewCount || 0),
             images: [],
             isActive: true,
             stock: 100,

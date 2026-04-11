@@ -65,7 +65,7 @@ export default async function orderRoutes(app: FastifyInstance) {
 
   // Create Manual UPI Order
   app.post("/manual-create", async (req, reply) => {
-    const { storeId, customerName, customerEmail, customerPhone, customerAddress, items } = req.body as any;
+    const { storeId, customerName, customerEmail, customerPhone, customerAddress, items, paymentMethod } = req.body as any;
 
     const store = await prisma.store.findUnique({ 
       where: { id: storeId },
@@ -99,6 +99,7 @@ export default async function orderRoutes(app: FastifyInstance) {
         },
         total,
         status: "PENDING",
+        paymentMethod: paymentMethod || "UPI",
       },
     });
 

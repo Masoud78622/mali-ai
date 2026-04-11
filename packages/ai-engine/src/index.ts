@@ -183,9 +183,9 @@ Output ONLY minified JSON:
     "pages": {"hero":{"headline":"", "subheadline":"", "ctaText":"", "features":[{"icon":"🚚|🔒|⭐", "title":"", "description":""}]}, "about":"", "shipping":"", "returns":""},
     "productCategories":[], "pricingStrategy":"budget|mid|premium", "estimatedMargin":35
   },
-  "products": [{"title":"","description":"Emotional hook + Benefit description", "price":29.99,"costEstimate":8.0,"margin":72,"category":"","tags":[],"searchKeywords":[]}]
+  "products": [{"title":"","description":"Emotional hook + Benefit description", "price":29.99,"costEstimate":8.0,"margin":72,"soldCount":45,"viewCount":12,"category":"","tags":[],"searchKeywords":[]}]
 }
-Generate 8 products. Add 3 trust-building features in Hero (e.g., 'Eco-Frendly', 'Pro-Grade', 'Secure').`;
+Generate 8 products. Add 3 trust-building features in Hero (e.g., 'Eco-Frendly', 'Pro-Grade', 'Secure'). Add realistic small int stats for sales/viewers.`;
 
   const text = await callAI(prompt, 3500);
   return extractJSON(text);

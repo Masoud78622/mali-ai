@@ -48,6 +48,8 @@ model Product {
   images       String[]
   stock        Int      @default(0)
   sku          String?
+  soldCount    Int      @default(0)
+  viewCount    Int      @default(0)
   source       Source   @default(MANUAL)
   aliexpressId String?
   isActive     Boolean  @default(true)
@@ -67,6 +69,7 @@ model Order {
   items             OrderItem[]
   total             Decimal     @db.Decimal(10, 2)
   status            OrderStatus @default(PENDING)
+  paymentMethod     String      @default("UPI") // UPI, COD
   razorpayOrderId   String?
   razorpayPaymentId String?
   whatsappSent      Boolean     @default(false)
