@@ -121,7 +121,7 @@ export default function RegisterPage() {
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="input-field"
+                className="mds-input"
                 placeholder="Your name"
                 autoComplete="name"
               />
@@ -134,7 +134,7 @@ export default function RegisterPage() {
                 required
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="input-field"
+                className="mds-input"
                 placeholder="you@example.com"
                 autoComplete="email"
               />
@@ -154,14 +154,14 @@ export default function RegisterPage() {
                 minLength={8}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="input-field"
+                className="mds-input"
                 placeholder="Min 8 characters"
                 autoComplete="new-password"
               />
               <PasswordStrength password={form.password} />
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary mt-2">
+            <button type="submit" disabled={loading} className="mds-button mds-button-primary w-full mt-2">
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

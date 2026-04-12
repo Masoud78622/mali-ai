@@ -9,9 +9,21 @@
   --indigo-dark: #4f46e5;
   --purple: #8b5cf6;
   --bg: #0a0a0f;
-  --surface: rgba(255,255,255,0.04);
-  --border: rgba(255,255,255,0.08);
+  --surface: rgba(255,255,255,0.03);
+  --border: rgba(255,255,255,0.06);
+  --border-strong: rgba(255,255,255,0.1);
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
 }
+
+/* MDS Typography Scale (1.25x) */
+h1 { font-size: 2.441rem; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 1.953rem; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
+h3 { font-size: 1.563rem; line-height: 1.2; font-weight: 600; letter-spacing: -0.01em; }
+h4 { font-size: 1.25rem; line-height: 1.3; font-weight: 600; }
+body { font-size: 1rem; line-height: 1.6; font-weight: 400; color: var(--text-secondary); }
+
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -132,52 +144,96 @@ body {
   background-size: 60px 60px;
 }
 
-/* Input styles */
-.input-field {
-  width: 100%;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  padding: 14px 16px;
-  color: white;
-  font-size: 15px;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.2s ease;
-  outline: none;
+/* Tactile Components (MDS) */
+.mds-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-.input-field::placeholder { color: rgba(255,255,255,0.3); }
-
-.input-field:focus {
-  border-color: #6366f1;
-  background: rgba(99,102,241,0.08);
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+.mds-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-/* Button styles */
-.btn-primary {
-  width: 100%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border: none;
+.mds-button {
+  display: inline-flex;
+  items-center: center;
+  justify-content: center;
+  padding: 0.75rem 1.25rem;
   border-radius: 12px;
-  padding: 14px;
-  color: white;
-  font-size: 15px;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
-  cursor: pointer;
+  font-size: 0.875rem;
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
+  border: 1px solid transparent;
 }
 
-.btn-primary:hover:not(:disabled) {
+.mds-button-primary {
+  background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%), var(--indigo);
+  border-top-color: rgba(255,255,255,0.2);
+  color: white;
+  box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+}
+
+.mds-button-primary:hover {
+  background: var(--indigo-dark);
   transform: translateY(-1px);
-  box-shadow: 0 8px 25px rgba(99,102,241,0.4);
+  box-shadow: 0 6px 16px rgba(99,102,241,0.4);
 }
 
-.btn-primary:active:not(:disabled) { transform: translateY(0); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.mds-button-secondary {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: white;
+}
+
+.mds-button-secondary:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--border-strong);
+}
+
+.mds-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.875rem 1.25rem;
+  color: white;
+  font-size: 0.9375rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.02);
+}
+
+.mds-input:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-strong);
+}
+
+.mds-input:focus {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--indigo);
+  box-shadow: 
+    0 0 0 4px rgba(99, 102, 241, 0.15),
+    0 8px 16px -4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+
 
 /* Noise texture overlay for premium look */
 .noise::after {

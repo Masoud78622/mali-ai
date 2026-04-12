@@ -6,25 +6,26 @@ import Link from "next/link";
 
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl p-6" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+    <div className="mds-card p-6">
       <div className="flex items-start justify-between mb-4">
         <div className="space-y-2 flex-1">
-          <div className="skeleton h-5 w-32" />
-          <div className="skeleton h-3 w-48" />
+          <div className="skeleton h-6 w-32" />
+          <div className="skeleton h-4 w-48 opacity-50" />
         </div>
-        <div className="skeleton h-5 w-12 ml-4 rounded-full" />
+        <div className="skeleton h-6 w-12 ml-4 rounded-full" />
       </div>
-      <div className="flex gap-4 mb-4">
-        <div className="skeleton h-3 w-20" />
-        <div className="skeleton h-3 w-20" />
+      <div className="flex gap-4 mb-6">
+        <div className="skeleton h-4 w-20 opacity-30" />
+        <div className="skeleton h-4 w-20 opacity-30" />
       </div>
-      <div className="flex gap-2">
-        <div className="skeleton h-9 flex-1" />
-        <div className="skeleton h-9 flex-1" />
+      <div className="flex gap-3">
+        <div className="skeleton h-10 flex-1" />
+        <div className="skeleton h-10 flex-1" />
       </div>
     </div>
   );
 }
+
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -65,46 +66,42 @@ export default function DashboardPage() {
     : user?.email?.[0]?.toUpperCase() || "U";
 
   return (
-    <div className="min-h-screen" style={{ background: "#0a0a0f" }}>
-
+    <div className="min-h-screen bg-[#0a0a0f]">
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 backdrop-blur-xl"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(10,10,15,0.85)" }}>
+      <nav className="sticky top-0 z-50 backdrop-blur-xl border-b border-white/[0.06] bg-[#0a0a0f]/80">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-sm"
-              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>M</div>
-            <span className="text-white font-bold text-lg">Mali AI</span>
+          <Link href="/dashboard" className="flex items-center gap-2 group">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-sm transition-transform group-hover:scale-105"
+              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)", boxShadow: "0 4px 12px rgba(99,102,241,0.3)" }}>M</div>
+            <span className="text-white font-bold text-xl tracking-tight">Mali AI</span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Link href="/dashboard/create"
-              className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5"
-              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)", boxShadow: "0 4px 15px rgba(99,102,241,0.25)" }}>
-              <span className="text-base">+</span> New Store
+              className="hidden sm:flex mds-button mds-button-primary">
+              <span className="text-lg mr-1.5">+</span> New Store
             </Link>
 
             <div className="relative">
               <button onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:bg-white/5">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-2xl transition-all hover:bg-white/[0.05] border border-transparent hover:border-white/[0.08]">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-inner"
                   style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
                   {initials}
                 </div>
-                <span className="hidden sm:block text-gray-400 text-sm">{user?.email}</span>
-                <span className="text-gray-600 text-xs">{menuOpen ? "▲" : "▼"}</span>
+                <span className="hidden sm:block text-slate-400 text-sm font-medium">{user?.email}</span>
+                <span className="text-slate-600 text-[10px] ml-1">{menuOpen ? "▲" : "▼"}</span>
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-44 rounded-xl overflow-hidden animate-fade-in"
-                  style={{ background: "rgba(15,15,25,0.95)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(20px)" }}>
-                  <div className="px-4 py-3 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-                    <p className="text-white text-sm font-medium truncate">{user?.name || "User"}</p>
-                    <p className="text-gray-500 text-xs truncate">{user?.email}</p>
+                <div className="absolute right-0 mt-3 w-56 mds-card overflow-hidden animate-fade-in z-[60] p-1 bg-[#0f0f19]/95 backdrop-blur-2xl">
+                  <div className="px-4 py-3 border-b border-white/[0.06] mb-1">
+                    <p className="text-white text-sm font-semibold truncate">{user?.name || "User"}</p>
+                    <p className="text-slate-500 text-xs truncate mt-0.5">{user?.email}</p>
                   </div>
                   <button onClick={logout}
-                    className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
-                    Sign out
+                    className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors rounded-lg flex items-center gap-2">
+                    <span>🚪</span> Sign out
                   </button>
                 </div>
               )}
@@ -113,49 +110,44 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-10">
-
+      <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-6">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">
-              Your Stores
-            </h1>
-            <p className="text-gray-400 text-sm">
-              {loading ? "Loading..." : stores.length === 0
+            <h1 className="mb-2">Your Stores</h1>
+            <p className="text-slate-500 font-medium">
+              {loading ? "Discovering your business empire..." : stores.length === 0
                 ? "No stores yet — create your first one"
-                : `${stores.length} store${stores.length > 1 ? "s" : ""} total`}
+                : `${stores.length} store${stores.length > 1 ? "s" : ""} active and ready`}
             </p>
           </div>
           <Link href="/dashboard/create"
-            className="sm:hidden flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-medium text-white w-fit"
-            style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
+            className="sm:hidden mds-button mds-button-primary w-full">
             + New Store
           </Link>
         </div>
 
         {/* Content */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
           </div>
         ) : stores.length === 0 ? (
-          <div className="text-center py-24">
-            <div className="w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center text-4xl glass animate-float">
+          <div className="text-center py-32 border-2 border-dashed border-white/[0.05] rounded-[2.5rem] bg-white/[0.01]">
+            <div className="w-24 h-24 rounded-3xl mx-auto mb-8 flex items-center justify-center text-5xl bg-white/[0.03] border border-white/[0.06] shadow-mds-low animate-float">
               🏪
             </div>
-            <h2 className="text-white text-xl font-semibold mb-3">No stores yet</h2>
-            <p className="text-gray-400 text-sm mb-8 max-w-sm mx-auto">
-              Create your first AI-powered dropshipping store in minutes
+            <h2 className="mb-4">No stores yet</h2>
+            <p className="text-slate-500 mb-10 max-w-sm mx-auto font-medium">
+              Launch your first AI-powered dropshipping business in under 60 seconds.
             </p>
             <Link href="/dashboard/create"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-white font-medium transition-all hover:-translate-y-0.5 glow-indigo"
-              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
-              Create Your First Store →
+              className="mds-button mds-button-primary px-10 py-4 text-base">
+              Create Your First Store <span className="ml-2">→</span>
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {stores.map((store: any, i: number) => {
                   const envDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
                   let finalDomain = "mali-ai.shop";
@@ -173,52 +165,46 @@ export default function DashboardPage() {
 
                   return (
                     <div key={store.id}
-                      className="group relative rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 animate-fade-up"
-                      style={{
-                        background: "rgba(255,255,255,0.025)",
-                        border: "1px solid rgba(255,255,255,0.07)",
-                        animationDelay: `${i * 0.05}s`,
-                        boxShadow: "0 4px 24px rgba(0,0,0,0.3)"
-                      }}>
-                      {/* Hover glow */}
-                      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                        style={{ boxShadow: "inset 0 0 0 1px rgba(99,102,241,0.2)" }} />
+                      className="group mds-card p-6 animate-fade-up"
+                      style={{ animationDelay: `${i * 0.05}s` }}>
+                      
+                      {/* Inner highlight (MDS) */}
+                      <div className="absolute inset-0 rounded-2xl pointer-events-none border border-white/[0.03] shadow-inner" />
 
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-semibold text-lg truncate">{store.name}</h3>
-                          <p className="text-gray-400 text-sm mt-0.5 truncate">{store.tagline}</p>
+                      <div className="flex items-start justify-between mb-6 relative z-10">
+                        <div className="flex-1 min-w-0 pr-4">
+                          <h3 className="text-white font-bold text-lg truncate mb-1">{store.name}</h3>
+                          <p className="text-slate-500 text-sm truncate font-medium">{store.tagline}</p>
                         </div>
-                        <span className={`ml-3 flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${
+                        <span className={`flex-shrink-0 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border shadow-sm ${
                           store.isLive
-                            ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
-                            : "text-gray-500 bg-white/5 border border-white/10"
+                            ? "text-emerald-400 bg-emerald-500/5 border-emerald-500/20"
+                            : "text-slate-500 bg-white/5 border-white/10"
                         }`}>
                           {store.isLive ? "● Live" : "○ Draft"}
                         </span>
                       </div>
 
-                      <div className="flex gap-4 text-xs text-gray-500 mb-5">
-                        <span className="flex items-center gap-1">
-                          <span>🛍️</span> {store._count?.products || 0} products
+                      <div className="flex gap-6 text-[11px] font-bold text-slate-400 mb-8 relative z-10">
+                        <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/[0.03]">
+                          <span className="opacity-70 text-base">🛍️</span> {store._count?.products || 0} Products
                         </span>
-                        <span className="flex items-center gap-1">
-                          <span>📦</span> {store._count?.orders || 0} orders
+                        <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/[0.03]">
+                          <span className="opacity-70 text-base">📦</span> {store._count?.orders || 0} Orders
                         </span>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-3 relative z-10">
                         <Link href={`/dashboard/stores/${store.id}`}
-                          className="flex-1 text-center py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:bg-white/10"
-                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                          className="flex-1 mds-button mds-button-secondary text-sm">
                           Manage
                         </Link>
                         <a href={`http://${store.subdomain}.${finalDomain}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 text-center py-2.5 rounded-xl text-sm font-medium text-indigo-400 transition-all hover:text-indigo-300"
-                          style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)" }}>
-                          View Store ↗
+                          className="flex-1 mds-button mds-button-secondary text-sm group/btn"
+                          style={{ background: "rgba(99,102,241,0.06)", borderColor: "rgba(99,102,241,0.15)", color: "#818cf8" }}>
+                          View <span className="ml-1.5 transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5">↗</span>
                         </a>
                       </div>
                     </div>
@@ -227,13 +213,11 @@ export default function DashboardPage() {
 
             {/* Create new store card */}
             <Link href="/dashboard/create"
-              className="group rounded-2xl p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-              style={{ background: "rgba(99,102,241,0.03)", border: "1px dashed rgba(99,102,241,0.2)", minHeight: "200px" }}>
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-all group-hover:scale-110"
-                style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}>
+              className="group mds-card p-6 flex flex-col items-center justify-center gap-4 border-dashed border-white/[0.06] bg-white/[0.01] min-h-[220px] shadow-none hover:bg-white/[0.02]">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all group-hover:scale-110 bg-white/[0.03] border border-white/[0.06] text-slate-400 group-hover:text-indigo-400 group-hover:border-indigo-500/30">
                 +
               </div>
-              <p className="text-indigo-400 text-sm font-medium">Create New Store</p>
+              <p className="text-slate-400 font-bold group-hover:text-indigo-400 transition-colors">Create Another Store</p>
             </Link>
           </div>
         )}

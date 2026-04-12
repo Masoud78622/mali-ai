@@ -42,6 +42,21 @@ export default async function storeRoutes(app: FastifyInstance) {
     return store;
   });
 
+  // Increment view counts (public)
+  app.post("/subdomain/:subdomain/increment-views", async (req, reply) => {
+    const { subdomain } = req.params as any;
+    const store = await prisma.store.findUnique({ where: { subdomain } });
+    if (!store) return reply.code(404).send({ error: "Store not found" });
+
+    // Increment viewCount for all products in this store atomically
+    await prisma.product.updateMany({
+      where: { storeId: store.id },
+      data: { viewCount: { increment: 1 } }
+    });
+
+    return { success: true };
+  });
+
   // Create store
   app.post("/", auth, async (req, reply) => {
     const { id: userId } = req.user as any;
